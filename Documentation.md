@@ -1,6 +1,6 @@
 # Documentation
 
-## Naming of and entries in Kadi records  
+## Naming of Kadi records  
 
 Each record starts with 'GUF IfG EPMA'
 
@@ -22,9 +22,10 @@ The output from: summary, standard, type out
 *quick standard.txt*  
 The output from: quick menu, right click recipe, ??  
 
-*standard measurements.xlsx*
+*standard measurements.xlsx*  
 File with the results from the standard measurements, with colour results, therefore an excel file  
 
+  
 **Can contain**
 
 Image files as .jpg  
