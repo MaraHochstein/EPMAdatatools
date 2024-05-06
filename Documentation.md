@@ -30,5 +30,5 @@ File with the results from the standard measurements, with colour results, there
 
 Image files as .jpg  
 
-**To be considered**
+**To be considered**  
 A single mesurement campaign can consist use different quantitative measurement programs. The results of these are then spread across multiple Kadi entries, using the labelling '-a', '-b', ... after the Kadi record name.
