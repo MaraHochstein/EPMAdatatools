@@ -28,7 +28,7 @@ File with the results from the standard measurements, with colour results, there
   
 **Can contain**
 
-Image files as .jpg  
+Image files as .jpg, .tif, .bmp  
 
 **To be considered**  
 A single mesurement campaign can use different quantitative measurement programs. The results of these are then spread across multiple Kadi entries, using the labelling '-a', '-b', ... after the Kadi record name.
