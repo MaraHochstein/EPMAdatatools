@@ -22,12 +22,12 @@ The output from: summary, standard, type out
 *quick standard.txt*  
 The output from: quick menu, right click recipe, ??  
 
+  
+**Can contain**  
+
 *standard measurements.xlsx*  
 File with the results from the standard measurements, with colour results, therefore an excel file  
-:orange_circle: This file could be missing, so it might be sensible to test for its availability and not if it is not available.
-
-  
-**Can contain**
+:orange_circle: This file (in rare cases) could be missing, so it might be sensible to test for its availability and not if it is not available.
 
 Image files as .jpg, .tif, .bmp  
 
