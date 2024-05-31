@@ -36,5 +36,24 @@ File with the results from the standard measurements, with colour results, there
 
 Image files as .jpg, .tif, .bmp  
 
-**To be considered**  
-A single mesurement campaign can use different quantitative measurement programs. The results of these are then spread across multiple Kadi entries, using the labelling '-a', '-b', ... after the Kadi record name.
+
+### Map Analyses  
+
+**Must contain**  
+
+*quick standard.txt*  
+The output from: quick menu, right click recipe, ??  
+
+*{map file}.csv*  
+The naming of {map file} is as follows:  
+map {nr} {internal designation} {element name} {measured charactersistic line}.csv  
+e.g.:  
+map 2 data004 Mg Ka.csv  
+  
+**Can contain**  
+
+Image files as .jpg, .tif, .bmp  
+
+
+### Qualitative Analyses  
+t.b.d
