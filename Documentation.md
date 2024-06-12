@@ -7,7 +7,8 @@ https://epma-data-tools.streamlit.app
 ## Naming of Kadi records  
 
 Each record starts with 'GUF IfG EPMA'  
-A single measurement session, i.e., the session of one party with a single set of samples can make use of different measurement programs, i.e., different measurement setups and parameters. For example, when first silicates and then sulphides are measured. In this case, the results have all the same name, but for each specific measurement program a separate record is created, with a lettered postfix in the form of: -a, -b, -c, ... The first record with the postfix -a contains files that are similar for all records with this name, e.g., overview images.
+A single measurement session, i.e., the session of one party with a single set of samples can make use of different measurement programs, i.e., different measurement setups and parameters. For example, when first silicates and then sulphides are measured. In this case, the results have all the same name, but for each specific measurement program a separate record is created, with a lettered postfix in the form of: -a, -b, -c, ... The first record with the postfix -a contains files that are similar for all records with this name, e.g., overview images.  
+Records of a single measurement session might be all put in a Kadi Collection.
 
 ## Entries in Kadi records  
 
