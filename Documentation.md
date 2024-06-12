@@ -11,6 +11,10 @@ A single measurement session, i.e., the session of one party with a single set o
 
 ## Entries in Kadi records  
 
+
+### Types of Kadi records
+There are 3 different categories: quantitative, element maps, qualitative. Each category requires its specific measurement setup. Therefore, each category requires is separate Kadi record.
+
 ### Quantitative Analyses  
 
 **Must contain**  
