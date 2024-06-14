@@ -58,6 +58,7 @@ note that 'Eds' only occurs when the element was measured with EDS, when 'Eds' i
   
 **Can contain**  
 
+1 or 2 more map files labelled "data{nr} COMPO.csv" or "data{nr} SE.csv", which are maps of BSE- and/or SE-signals, i.e., essentially BSE- and SE-images.
 Image files as .jpg, .tif, .bmp  
 
 
