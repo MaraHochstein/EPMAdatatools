@@ -77,3 +77,9 @@ The output from: summary, standard, type out
 
 *quick standard.txt*  
 The output from: quick menu, right click recipe, ??  
+
+
+## Output
+
+### Measurement Conditions
+Detection limits (d.l.) are calculated by the machine software for each measurement point. The output in the webinterface is the median of all measurements togehter with the standard deviation.
