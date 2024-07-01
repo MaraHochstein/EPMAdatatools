@@ -51,7 +51,7 @@ The output from: quick menu, right click recipe, ??
 
 *{map file}.csv*  
 The naming of {map file} is as follows:  
-map {nr} {Eds}{internal designation} {element name} {measured charactersistic line}.csv  
+map {nr} {Eds}{internal designation} {element name} {measured characteristic line}.csv  
 e.g.:  
 map 2 data004 Mg Ka.csv  
 note that 'Eds' only occurs when the element was measured with EDS, when 'Eds' is missing, the element was measured with WDS
