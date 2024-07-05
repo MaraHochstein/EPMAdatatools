@@ -4,6 +4,6 @@ tifffile
 imagecodecs
 altair
 plotly
-streamlit_extras
+streamlit-extras
 streamlit-oauth
 seaborn
