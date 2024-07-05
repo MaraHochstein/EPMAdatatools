@@ -76,7 +76,7 @@ col1, col2, col3 = st.columns(3)
 
 # Demo version
 with col1:
-    if st.button(':rocket:  \nStart with Demo', 
+    if st.button(':rocket: **Start with Demo**', 
         help='Load our preconfigured dataset to have a look at the functions of EPMA Data Tools!', 
         type='primary', use_container_width=True):
             if sst.userType == 'kadi':
@@ -90,7 +90,7 @@ with col1:
             kadiLoadFiles()
 # PW required
 with col2:
-    if st.button(':key: Access records from the IfG GUF  \n(password required)', 
+    if st.button(':key: **Access records from the IfG GUF**', 
         help='Click this to browse the EPMA records of the Institute for Geosciences of the Goethe University Frankfurt.  \nYou may need a password to load the data of the records.', 
         type='primary', use_container_width=True):
             if sst.userType == 'kadi':
