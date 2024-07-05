@@ -1,0 +1,8 @@
+requests
+xlsxwriter
+tifffile
+imagecodecs
+altair
+plotly
+streamlit-oauth
+seaborn
