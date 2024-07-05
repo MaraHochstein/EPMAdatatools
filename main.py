@@ -39,8 +39,12 @@ st.html(
 <style>
 [data-testid=baseButton-primary] {
     height: auto;
-    padding-top: 20px !important;
-    padding-bottom: 20px !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    border: none;
+    background-color: white;
+    color: black;
+    
 }
 
 [data-testid=baseButton-primary] [data-testid=stMarkdownContainer] > p {
