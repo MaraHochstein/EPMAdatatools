@@ -381,7 +381,8 @@ else:
                             plotElementMap(mapId)
                                                            
                 st.divider()
-
+            
+            st.info('Check out **' + fn.pageNames['export']['name'] + '** if you want to download these map images (*.jpg, *.tif) as zip-archive or upload the map settings to Kadi4Mat.', icon=fn.pageNames['export']['ico'])
         else:
             st.info('This record contains no element map data.')
         
