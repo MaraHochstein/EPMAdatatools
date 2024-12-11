@@ -1,3 +1,3 @@
 # Documentation
 
-Is now found on mag4: [mag4.org](https://hezel2000.quarto.pub/mag4/)
+Is now found on [mag4.org](https://www.mag4.org) in the microprobe section.
