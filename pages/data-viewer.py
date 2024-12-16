@@ -207,11 +207,8 @@ def plotElementMap(selectedMap, selectedCmap, rangeSelMin, rangeSelMax, mWidth=2
     sst.mapImages[selectedMap.replace('.csv','.png')] = imgBuffer.getvalue()
     plt.close()
     
-    # show plot
-    ## map infos
-    st.markdown('**Details for this ' + str(sst.mapData[selectedMap]['element']) + '-map of ' + str(sst.mapData[selectedMap]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[selectedMap]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[selectedMap]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(selectedMap.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(selectedMap.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
-    ## plot
-    st.image(sst.mapImages[selectedMap.replace('.csv','.png')], use_container_width=True) # use st.image instead of st.pyplot to avoid "MediaFileHandler: Missing file"-error
+    
+    
     
     
    
@@ -661,8 +658,18 @@ else:
                         # show map preview
                         if sst.mapEdit in sst.mapEditFilter['filterSettings']:
                             plotElementMap(sst.mapEdit, selectedCmap, sst.mapEditFilter['filterSettings'][sst.mapEdit]['min'], sst.mapEditFilter['filterSettings'][sst.mapEdit]['max'], mWidth=5, mHeight=2)
+                            # show plot
+                            ## map infos
+                            st.markdown('**Details for this ' + str(sst.mapData[sst.mapEdit]['element']) + ('-' if sst.mapData[sst.mapEdit]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[sst.mapEdit]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[sst.mapEdit]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[sst.mapEdit]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(sst.mapEdit.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(sst.mapEdit.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
+                            ## use st.image instead of st.pyplot to avoid "MediaFileHandler: Missing file"-error
+                            st.image(sst.mapImages[sst.mapEdit.replace('.csv','.png')], use_container_width=True)
                         else:
                             plotElementMap(sst.mapEdit, selectedCmap, rangeSelMin, rangeSelMax,  mWidth=5, mHeight=2)
+                            # show plot
+                            ## map infos
+                            st.markdown('**Details for this ' + str(sst.mapData[sst.mapEdit]['element']) + ('-' if sst.mapData[sst.mapEdit]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[sst.mapEdit]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[sst.mapEdit]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[sst.mapEdit]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(sst.mapEdit.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(sst.mapEdit.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
+                            ## use st.image instead of st.pyplot to avoid "MediaFileHandler: Missing file"-error
+                            st.image(sst.mapImages[sst.mapEdit.replace('.csv','.png')], use_container_width=True)
                         
                         st.write('Min: ' + str(dataMin) + ' | Max: ' + str(dataMax) + ' | Mean: ' + str(dataMean) + ' | Std. dev.: ' + str(dataStd))
                 else:
@@ -694,6 +701,12 @@ else:
                     if i == 0:
                         with col1:
                             plotElementMap(mapId, selectedCmap, rSelMin, rSelMax)
+                            # show plot
+                            ## map infos
+                            st.markdown('**Details for this ' + str(sst.mapData[mapId]['element']) + ('-' if sst.mapData[mapId]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[mapId]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[mapId]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[mapId]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
+                            ## use st.image instead of st.pyplot to avoid "MediaFileHandler: Missing file"-error
+                            st.image(sst.mapImages[mapId.replace('.csv','.png')], use_container_width=True) 
+                            
                             if st.button('Edit this map', key='edit' + mapId):
                                 # select map as edit map
                                 sst.mapEdit = mapId
@@ -701,12 +714,24 @@ else:
                     elif i == 1:
                         with col2:
                             plotElementMap(mapId, selectedCmap, rSelMin, rSelMax)
+                            # show plot
+                            ## map infos
+                            st.markdown('**Details for this ' + str(sst.mapData[mapId]['element']) + ('-' if sst.mapData[mapId]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[mapId]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[mapId]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[mapId]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
+                            ## use st.image instead of st.pyplot to avoid "MediaFileHandler: Missing file"-error
+                            st.image(sst.mapImages[mapId.replace('.csv','.png')], use_container_width=True) 
+                            
                             if st.button('Edit this map', key='edit' + mapId):
                                 sst.mapEdit = mapId
                                 st.rerun()
                     else:
                         with col3:
                             plotElementMap(mapId, selectedCmap, rSelMin,rSelMax)
+                            # show plot
+                            ## map infos
+                            st.markdown('**Details for this ' + str(sst.mapData[mapId]['element']) + ('-' if sst.mapData[mapId]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[mapId]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[mapId]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[mapId]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
+                            ## use st.image instead of st.pyplot to avoid "MediaFileHandler: Missing file"-error
+                            st.image(sst.mapImages[mapId.replace('.csv','.png')], use_container_width=True) 
+                            
                             if st.button('Edit this map', key='edit' + mapId):
                                 sst.mapEdit = mapId
                                 st.rerun()
