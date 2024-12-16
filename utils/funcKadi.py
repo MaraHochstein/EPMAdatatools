@@ -1,10 +1,43 @@
 #######################
 # imports
 #######################
-from utils.imports import (st, sst, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, annotated_text, key, base64, imagecodecs, html, copy, alt, np, go)
+from utils.imports import (st, sst, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, annotated_text, key, base64, imagecodecs, html, copy, alt, np, go, openpyxl)
 import utils.func as fn
 
 import json
+import time
+
+#########################
+# helper functions
+#########################
+
+# get fill colors from xlsx file
+def getXlsxFillColors(sheet):
+    fillColors = {}
+    for row in sheet.iter_rows():
+        for cell in row:
+            # check if cell is colored
+            if cell.fill and cell.fill.fgColor and hasattr(cell.fill.fgColor, 'tint') and cell.fill.fgColor.tint != 0:
+                fillColors[(cell.row - 1, cell.column - 1)] = True # mark cell for styling
+    return fillColors
+
+# color cells in pd.df
+def colorCells(data, fillColors, origData, color):  
+    # map original row/col positions to new df structure (after changing indices)
+    origPositions = {}
+    for (origRow, origCol), _ in fillColors.items():
+        if origRow < len(origData) and origCol < len(origData.columns):
+            newRowName = origData.iloc[origRow, 0] # first col gets index
+            newColName = origData.iloc[0, origCol] # first row gets header
+            origPositions[(newRowName, newColName)] = True
+    # apply color
+    def applyColor(row):
+        return [
+            'background-color: ' + color if (row.name, col) in origPositions else ''
+            for col in row.index
+        ]
+    return data.style.apply(lambda x: applyColor(x), axis=1)  
+
 
 #########################
 # Kadi4Mat functions
@@ -87,7 +120,10 @@ def kadiGetMetadata():
                         valueWithUnit = valueWithUnit + ' ' + str(response.json()[i]['unit'])
                     dataCol.append(valueWithUnit)
     
-    sst.kadiMetaData = pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])              
+    
+    metadata = pd.concat([pd.DataFrame({'Value': [kadiGetData('records/' + sst.recordID).json()['description']]}, index=['description']), pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])])
+    metadata.index = metadata.index.str.capitalize()
+    sst.kadiMetaData = metadata
 
 
 # get specific metadata field
@@ -108,17 +144,17 @@ def kadiLoadFiles(parentContainer = False):
                 # Init & Clean
                 ################
                 # clear from previous upload (if upload was only partly successful)
-                sstVars = 'kadiMetaData', 'condElements', 'condInfos', 'condSamples', 'condStd', 'methodGeneralData', 'methodSampleData', 'methodStdData', 'csvMerged', 'imageData', 'imageFiles', 'kadiLoaded', 'shortMeasCond', 'kadiFilter', 'mapData'
+                sstVars = ['kadiLoaded', 'kadiMetaData', 'condElements', 'condInfos', 'condMapInfos', 'condSamples', 'condMapSamples', 'condStd', 'methodGeneralData', 'methodSampleData', 'methodStdData', 'shortMeasCond', 'standardsXlsx', 'standardsXlsxExport', 'csvMerged', 'kadiFilter', 'imageData', 'imageFiles', 'mapData', 'mapFilter', 'mapGeneralData', 'mapWdsData', 'mapEdsData']
                 for var in sstVars:
                     fn.resetVar(var)
-
+                
                 # temp variables(raw filenames & data)
                 csvSummaryFile = {}
                 csvSummaryData = pd.DataFrame()
                 csvSummaryName = 'summary[timestamp].csv'
                 
                 normalFile = {}
-                normalData = ''
+                normalContent = ''
                 normalName = 'normal.txt'
                 
                 quickFile = {}
@@ -129,21 +165,42 @@ def kadiLoadFiles(parentContainer = False):
                 standardData = ''
                 standardName = 'summary standard.txt'
                 
+                standardsXlsxFile = {}
+                standardsXlsxData = ''
+                standardsXlsxName = 'standards.xlsx'
+                
+                mapJsons = {}
+                mapJsonsData = {}
+                mapJsonName = 'map [sample name].json'
+                
                 kadiError = False
                 kadiFilter = {}
                 
                 imageFiles = {}
                 
                 mapFiles = {}
+                mapFilter = {}
                 
                 # get kadi metadata for record
                 st.write('Getting metadata from Kadi4Mat ...')
                 kadiGetMetadata()
                 
                 
+                ############################################################################
+                # Loading order:
+                #   1. get file ids from record
+                #   2. check if all raw files are found
+                #   3. load content of raw files
+                #   4. merge files
+                #   5. load saved filter settings from kadi
+                # ---- maps & imgs after merging to decrease loading time if error occurs
+                #   6. load map files
+                #   7. load image files 
+                ############################################################################
+                
+
                 ##########################################
                 # 1. get file ids from record
-                #    & check if all raw files were found
                 ##########################################
                 
                 # get all filenames from api
@@ -171,6 +228,12 @@ def kadiLoadFiles(parentContainer = False):
                         # csv summary
                         elif item['mimetype'] == 'text/csv' and item['name'].startswith('summary'):
                             csvSummaryFile[item['id']] = item['name']
+                        # standards.xlsx
+                        elif item['mimetype'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and item['name'] == standardsXlsxName:
+                            standardsXlsxFile[item['id']] = item['name']
+                        # map parameter jsons
+                        elif item['name'].startswith('map ') and item['mimetype'] == 'application/json':
+                            mapJsons[item['id']] = item['name']                        
                         # images
                         elif item['mimetype'] == 'image/tiff' or item['mimetype'] == 'image/jpeg':
                             imageFiles[item['id']] = item['name']
@@ -178,24 +241,41 @@ def kadiLoadFiles(parentContainer = False):
                         elif 'filter' in item['name'] and item['mimetype'] == 'text/plain':
                             kadiFilter[item['id']] = item['name']
                         # maps
-                        elif 'map ' in item['name'] and item['mimetype'] == 'text/csv':
+                        elif item['name'].startswith('map ') and item['mimetype'] == 'text/csv':
                             mapFiles[item['id']] = item['name']
-                            
+                        # map settings
+                        elif 'mapSettings' in item['name'] and item['mimetype'] == 'text/plain':
+                            mapFilter[item['id']] = item['name']
+                        
                 
-                #######################
-                #
-                #    QUANTITATIVE
-                #
-                #######################
-                # load quant data also for map records if all needed raw files are found:
-                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0):
-
-                    # check if all needed raw files are found
-                    # (this check is already done for map records)
-                    missingFiles = []
-                    doubleFiles = []
-                    doubleFileNames = []
-                    
+                ############################################################
+                # 2. check if all raw files are found
+                # - 2a. optional files for all measurement types
+                # - 2b. QUANT (or MAPS + QUANT)
+                # - 2c. MAPS ONLY
+                # - 2end. Error messages if missing & double files -> stop
+                ############################################################
+                
+                missingFiles = []
+                doubleFiles = []
+                doubleFileNames = []
+                
+                # 2a. optional files for all measurement types
+                # - standards.xlsx
+                #################################################
+                if len(standardsXlsxFile) > 1:
+                    doubleFiles.append(standardsXlsxName + '-file')
+                    doubleFileNames.append(' / '.join(standardsXlsxFile.values()))
+                
+                # 2b. QUANT (or MAPS + QUANT)
+                # - summary[timestamp].csv
+                # - normal.txt
+                # - quick standard.txt
+                # - summary standard.txt
+                ################################
+                
+                if (len(mapFiles) > 0 and len(csvSummaryFile) >= 1 and len(normalFile) >= 1 and len(quickFile) >= 1 and len(standardFile) >= 1) or (len(mapFiles) == 0):
+                
                     if len(csvSummaryFile) < 1:
                         missingFiles.append(csvSummaryName + '-file')
                     elif len(csvSummaryFile) > 1:
@@ -216,44 +296,126 @@ def kadiLoadFiles(parentContainer = False):
                     elif len(standardFile) > 1:
                         doubleFiles.append(standardName + '-file')
                         doubleFileNames.append(' / '.join(standardFile.values()))
+                
+                # 2c. MAPS ONLY
+                # - json
+                ##############################
+                
+                if len(mapFiles) > 0:
+                    if len(mapJsons) < 1:
+                        missingFiles.append(mapJsonName + '-file(s)')
                     
-                    # show message with missing files
-                    if len(missingFiles) > 0:
-                        line1 = (('Please upload the following files to [**this record**&thinsp;:link:](https://kadi4mat.iam.kit.edu/records/') if len(missingFiles) > 1 else ('Please upload the following file to [**this record**&thinsp;:link:](https://kadi4mat.iam.kit.edu/records/')) + str(sst.recordID) + '?tab=files) and try again'
-                        line2 = '\n' + '\n'.join([f'- {file}' for file in missingFiles])
-                        st.error(f'''
-                            {line1}
-                            {line2}
-                            ''', icon=':material/sync_problem:')
+
+                # 2end. ERROR MESSAGES
+                ########################
+                
+                # missing files
+                if len(missingFiles) > 0:
+                    line1 = (('Please upload the following files to [**this record**&thinsp;:link:](https://kadi4mat.iam.kit.edu/records/') if len(missingFiles) > 1 else ('Please upload the following file to [**this record**&thinsp;:link:](https://kadi4mat.iam.kit.edu/records/')) + str(sst.recordID) + '?tab=files) and try again'
+                    line2 = '\n' + '\n'.join([f'- {file}' for file in missingFiles])
+                    st.error(f'''
+                        {line1}
+                        {line2}
+                        ''', icon=':material/sync_problem:')
+                
+                # double files
+                if len(doubleFiles) > 0:
+                    line1 = ('Found multiple possible raw files of the following filetypes') if len(doubleFiles) > 1 else ('Found multiple possible raw files of the following filetype')
+                    line2 = '\n' + '\n'.join([f'- {file}' for file in doubleFiles])
+                    line3 = (('\n Please remove or rename one of these files') if len(doubleFiles) > 1 else ('\n Please remove or rename one of the corresponding files')) + 'in [**this record**&thinsp;:link:](https://kadi4mat.iam.kit.edu/records/' + str(sst.recordID) + '?tab=files) and try again'
+                    line4 = '\n' + '\n'.join([f'- {file}' for file in doubleFileNames])
+                    st.error(f'''   
+                        {line1}
+                        {line2}
+                        {line3}                            
+                        {line4}
+                        ''', icon=':material/sync_problem:')
+                
+                # stop if missing or double files
+                if len(missingFiles) > 0 or len(doubleFiles) > 0:
+                    kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
+                    kadiError = True
+                    st.stop()
+                
+                
+                ###########################################################
+                # 3. load content of raw files
+                # - 3a. optional files for all measurement types
+                # - 3b. QUANT (or MAPS + QUANT)
+                # - 3c. MAPS ONLY
+                # - 3end. check if all contain data -> else error & stop
+                ###########################################################
+                
+                st.write('Loading raw EPMA data ...')
+                invalidFiles = []
+                
+                # 3a. optional for all measurement types
+                # - 3a1. standards.xlsx (standardsXlsxFile)
+                #################################################
+                # optional
+                if len(standardsXlsxFile) == 1:
+                    content = kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + list(standardsXlsxFile.keys())[0] + '/download')
+                    # use bytesIO for decoding xlsx format
+                    xlsxData = io.BytesIO(content)
+                    xlsxWb = openpyxl.load_workbook(xlsxData, data_only=True)
                     
-                    # show message with double files
-                    if len(doubleFiles) > 0:
-                        line1 = ('Found multiple possible raw files of the following filetypes') if len(doubleFiles) > 1 else ('Found multiple possible raw files of the following filetype')
-                        line2 = '\n' + '\n'.join([f'- {file}' for file in doubleFiles])
-                        line3 = (('\n Please remove or rename one of these files') if len(doubleFiles) > 1 else ('\n Please remove or rename one of the corresponding files')) + 'in [**this record**&thinsp;:link:](https://kadi4mat.iam.kit.edu/records/' + str(sst.recordID) + '?tab=files) and try again'
-                        line4 = '\n' + '\n'.join([f'- {file}' for file in doubleFileNames])
-                        st.error(f'''   
-                            {line1}
-                            {line2}
-                            {line3}                            
-                            {line4}
-                            ''', icon=':material/sync_problem:')
+                    # for every sheet (if multiple standard measurements)
+                    for sheet in xlsxWb.sheetnames:
+                        # get sheet
+                        xlsxSheet = xlsxWb[sheet]
+                        
+                        # check if there are multiple tables in the sheet (data, two empty rows, more data)
+                        moreContent = False
+                        emptyRows = 0
+                        
+                        for row in xlsxSheet.iter_rows(min_row=1, max_row=xlsxSheet.max_row, max_col=xlsxSheet.max_column):
+                            # check if row is empty
+                            if all(cell.value is None for cell in row):
+                                emptyRows += 1
+                            else:
+                                # row is not empty -> check if empty rows are > 0
+                                if emptyRows > 0 and moreContent:
+                                    st.warning('Your ' + standardsXlsxName + '-file has an invalid structure and could not be imported.', icon=':material/sync_problem:')
+                                    moreContent = True # mark more content
+                                    emptyRows = 0 # reset empty rows after content
+                                    break
+                        if emptyRows > 0: # empty rows before last content
+                            st.warning('Your ' + standardsXlsxName + '-file has an invalid structure and could not be imported.', icon=':material/sync_problem:')
+                            moreContent = True
+                        
+                        # continue if content is ok
+                        if not moreContent:
+                            # get fill colors & data
+                            ## extract fill colors
+                            fillColors = getXlsxFillColors(xlsxSheet)
+                            ## convert sheet to pd.df
+                            xlsxDf = pd.DataFrame(xlsxSheet.values)
+                            xlsxDfOrig = xlsxDf.copy()
+                            ## save shape of df
+                            xlsxShape = xlsxDf.shape
+                            ## set first row as header row (transpose, set index, transpose back is shortest)
+                            xlsxDf = xlsxDf.T.set_index(xlsxDf.columns[0]).T
+                            ## set first col as index col
+                            xlsxDf = xlsxDf.set_index(xlsxDf.columns[0])
+                            
+                            # save in sst
+                            ## color cells in the pd.df if they have color in xlsx-file                            
+                            sst.standardsXlsx[sheet] = colorCells(xlsxDf, fillColors, xlsxDfOrig, st.get_option('theme.primaryColor')) # use shape of original xlsx
+                            ## use different color for excel export (streamlit theme color would change to black in export)
+                            sst.standardsXlsxExport[sheet] = colorCells(xlsxDf, fillColors, xlsxDfOrig, 'lightblue')
+                
+                
+                # 3b. QUANT (or MAPS + QUANT)
+                # - 3b1. summary[timestamp].csv (csvSummaryFile)
+                # - 3b2. normal.txt (normalFile)
+                # - 3b3. quick standard.txt (quickFile)
+                # - 3b4. summary standard.txt (standardFile)
+                #####################################################
+                
+                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0):    
                     
-                    # stop if missing or double files
-                    if len(missingFiles) > 0 or len(doubleFiles) > 0:
-                        kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
-                        kadiError = True
-                        st.stop()
-                    
-                    ##################################
-                    # 2. load content of raw files
-                    #    & check if all contain data
-                    ##################################
-                    st.write('Loading raw EPMA data ...')
-                    invalidFiles = []
-                    
-                    # load csv-file
-                    #################
+                    # 3b1. load summary[timestamp].csv -> csvSummaryData
+                    ######################################################
                     content = kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + list(csvSummaryFile.keys())[0] + '/download').decode('utf_8')
                     lines = content.splitlines()
                     # search content for header row (to get skiprows)
@@ -272,62 +434,139 @@ def kadiLoadFiles(parentContainer = False):
                     # save content for merging
                     if len(content) > 2:
                         csvSummaryData = pd.read_csv(io.StringIO(content), skiprows=skipRows, skipfooter=skipFooter, engine='python')
+                        
+                        # change duplicate names in Comment for merging
+                        duplicateComments = {} # keeps track of duplicates
+                        for i, comment in enumerate(csvSummaryData['Comment']):
+                            if comment in duplicateComments:
+                                # increase count for each occurance of comment (sample name)
+                                duplicateComments[comment] += 1
+                                # change name of comment if comment was 
+                                csvSummaryData.at[i, 'Comment'] = comment + '_dupl' + str(duplicateComments[comment])
+                            else:
+                                # first occurance of each comment (sample name) -> make entry
+                                duplicateComments[comment] = 0
+                        
+                        
                     else:
                         invalidFiles.append(csvSummaryName + '-file')
                         
-                    # load normal-file 
-                    ####################
-                    content = kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + list(normalFile.keys())[0] + '/download').decode('utf_8')            
-                    if len(content) > 2: # text-file contains something
-                        normalData = content
+                    # 3b2. load normal.txt
+                    ########################
+                    content = kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + list(normalFile.keys())[0] + '/download').decode('utf_8')
+                    
+                    # text-file contains something -> else append to invalid files
+                    if len(content) > 2: 
+                        normalContent = content
                         # find values in text
-                        positions = re.findall(r'Position\sNo\.\s*:\s*(\d+)', normalData)
-                        datetimes = re.findall(r'Dated\son\s(\d{4}\/\d{2}\/\d{2}\s\d{2}:\d{2}:\d{2})', normalData)
-                        diameters = re.findall(r'Probe\sDia.\s*:\s*(\d+\.\d+)', normalData)
+                        comment = [x.rstrip() for x in re.findall(r'Comment\s*:\s*(.*)(?:\n|\r\n)', normalContent)] # column for merging
+                        datetimes = re.findall(r'Dated\son\s(\d{4}\/\d{2}\/\d{2}\s\d{2}:\d{2}:\d{2})', normalContent) # only in normal-file
+                        diameters = re.findall(r'Probe\sDia.\s*:\s*(\d+\.\d+)', normalContent) # only in normal-file
 
-                        # combine
-                        df = pd.DataFrame(data=({'Point': positions, 'Datetime': pd.to_datetime(datetimes, format='%Y/%m/%d %H:%M:%S'), 'Spotsize': [int(float(x)) for x in  diameters]}))
-                        df['Point'] = df['Point'].astype(int)
+                        # combine found values to df
+                        normalData = pd.DataFrame(data=({'Comment': comment, 'Datetime': pd.to_datetime(datetimes, format='%Y/%m/%d %H:%M:%S'), 'Spotsize': [int(float(x)) for x in  diameters]}))
                         
-                        # drop duplicates which may be in original normal-file
-                        df = df.drop_duplicates(subset='Point')
-                    else:
+                        # check if there are duplicates
+                        normalDuplicates = normalData['Comment'].duplicated().any()
+                        if normalDuplicates:
+                            # show warning if duplicates
+                            st.warning('Some Sample Names have been renamed to merge the raw data files. You can identify or filter these samples by the *_dupl*-suffix in the next step.', icon=':material/info:')
+                        # change duplicate names in Comment for merging and give warning
+                        duplicateComments = {}
+                        for i, comment in enumerate(normalData['Comment']):
+                            if comment in duplicateComments:
+                                # increase count for each occurance of comment (sample name)
+                                duplicateComments[comment] += 1
+                                # change name of comment if comment was 
+                                normalData.at[i, 'Comment'] = comment + '_dupl' + str(duplicateComments[comment])
+                            else:
+                                # first occurance of each comment (sample name) -> make entry
+                                duplicateComments[comment] = 0
+                        
+                    else: # no content in normalFile
                         invalidFiles.append(normalName + '-file')  
 
-                    # load quick-file
-                    ###################
+                    # 3b3. load quick standard.txt
+                    ################################
                     content = kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + list(quickFile.keys())[0] + '/download').decode('utf_8')            
                     if len(content) > 2: # text-file contains something
                         quickData = content
                     else:
                         invalidFiles.append(quickName + '-file')
                     
-                    # load standard summary-file
-                    ##############################
+                    # 3b4. load standard summary standard.txt
+                    ###########################################
                     content = kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + list(standardFile.keys())[0] + '/download').decode('utf_8')            
                     if len(content) > 2: # text-file contains something
                         standardData = content
                     else:
                         invalidFiles.append(standardName + '-file')  
                     
-                    # check if all raw files contain data for merging
-                    ###################################################
-                    if len(invalidFiles) > 0:
-                        st.error(('The following files contain invalid data, please check them and try again:') if len(invalidFiles) > 1 else ('The following file contains invalid data, please check the data and try again:') + ', '.join(invalidFiles) + '.', icon=':material/sync_problem:')
-                        kadiStatus.update(label='Invalid file data, please read the corresponding error message for details.', state='error', expanded=True)
-                        kadiError = True
-                        st.stop()
+                # 3c. MAPS ONLY
+                # - 3c1. json
+                #################################
+                
+                elif len(mapFiles) > 0 and len(mapJsons) > 0:
+                    
+                    # 3c1. load map jsons
+                    ####################################
+                    for i, mapJsonID in enumerate(mapJsons.keys()):
+                        data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + mapJsonID + '/download'))
+                        if len(data) > 0: # json contains something
+                            mapJsonsData[mapJsons[mapJsonID].rstrip('.json')] = data
+                        else:
+                            invalidFiles.append(mapJsonName + '-file(s)')
+                    
+                    
+                # 3end. check if all raw files contain data for merging
+                #########################################################
+                if len(invalidFiles) > 0:
+                    st.error(('The following files contain invalid data, please check them and try again: ') if len(invalidFiles) > 1 else ('The following file contains invalid data, please check the data and try again: ') + ', '.join(invalidFiles) + '.', icon=':material/sync_problem:')
+                    kadiStatus.update(label='Invalid file data, please read the corresponding error message for details.', state='error', expanded=True)
+                    kadiError = True
+                    st.stop()
 
-                    ############################
-                    # 3. merge files
-                    ############################
-                    st.write('Merging files ...')
 
-                    # merge data from quickFile & standardFile
-                    ############################################
+                ###################################
+                # 4. merge files
+                # - 4a. QUANT (or MAPS + QUANT)
+                # - 4b. MAPS ONLY
+                ###################################
+                
+                st.write('Merging files ...')
+                
+                
+                # 4a. QUANT (or MAPS + QUANT)
+                # -> find infos in txt-files & merge to sst-df's
+                # - 4a1. Quantitative Conditions
+                #        = sst.methodGeneralData, sst.methodSampleData, sst.methodStdData
+                #        -> from quickData & standardData
+                # - 4a2. Quantitative Data table
+                #        =sst.csvMerged
+                #        -> from csvSummaryData & normalData
+                # - 4a3. Compact Measurement Conditions
+                #        = sst.shortMeasCond
+                #        -> from sst.methodGeneralData, sst.methodSampleData,
+                #           sst.methodStdData, sst.csvMerged
+                #############################################################################
+                
+                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0):    
+                    
+                    # 4a1. Quantitative Conditions:
+                    # - 4a11. "General Information" (quickData -> sst.methodGeneralData)
+                    # - 4a12. "Measurement Conditions" (quickData -> sst.methodSampleData)
+                    # - 4a13. "Standard Data" (quickData & standardData -> sst.methodStdData)
+                    ###########################################################################
+                    
                     try:
-                        # find infos in txt-files
+                        # Elements from quickData (variable needed below)
                         sst.condElements = ['Element', ' '.join(re.findall(r'(?s)Elements\s*?((?!\s*?Condition\s*?)(?!\s*?O\s*?(?:\n|\r\n?)Mode\s*?)\D*?)(?:\n|\r\n?)', quickData)).split()]
+                        
+                        # 4a11. "General Information"
+                        #        -> infos only in quickData
+                        #        -> merged to sst.methodGeneralData
+                        ##############################################
+                        # find values in txts
                         sst.condInfos = ['General Information', 
                             ['Type', re.search(r'Type\s*?:\s*?(.*)(?:\n|\r\n?)', quickData).group(1).strip()] if re.search(r'Type\s*?:\s*?(.*)(?:\n|\r\n?)', quickData) != None else ['Type', ''], 
                             ['Saved Path', re.search(r'Saved Path: (.*)(?:\n|\r\n?)', quickData).group(1).strip()] if re.search(r'Saved Path: (.*)(?:\n|\r\n?)', quickData) != None else ['Saved Path', ''], 
@@ -343,7 +582,20 @@ def kadiLoadFiles(parentContainer = False):
                             ['Measurement', re.search(r'\s*?(.*)\s*?Measurement(?:\n|\r\n?)', quickData).group(1).strip()] if re.search(r'\s*?(.*)\s*?Measurement(?:\n|\r\n?)', quickData) != None else ['Measurement', ''], 
                             ['No. of Positions', re.search(r'No. of Positions\s*?(.*)(?:\n|\r\n?)', quickData).group(1).strip()] if re.search(r'No. of Positions\s*?(.*)(?:\n|\r\n?)', quickData) != None else ['No. of Positions', ''],
                             ['No. of Elements', len(sst.condElements[1])]]
-                        # measurement conditions
+                        
+                        # merge to df (sst.methodGeneralData)
+                        firstCol = []
+                        dataCol = []
+                        for i in range(1,len(sst.condInfos)):
+                            firstCol.append(sst.condInfos[i][0])
+                            dataCol.append(sst.condInfos[i][1])
+                        sst.methodGeneralData = pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])
+                        
+                        # 4a12. "Measurement Conditions"
+                        #        -> infos only in quickData
+                        #        -> merged to sst.methodSampleData
+                        ############################################## 
+                        # find values in txts
                         sst.condSamples = ['Sample',
                             ['X-ray Name', ' '.join(re.findall(r'(?s)X-ray Name\s*?(.*?)(?:\n|\r\n?)', quickData)).split()],
                             ['Signal', [re.search(r'(?s)Standard Condition.*?Signal.*?\s*' + sst.condElements[1][i] + r' \s*(.{3})', quickData).group(1).strip() for i in range(len(sst.condElements[1]))]],
@@ -366,16 +618,25 @@ def kadiLoadFiles(parentContainer = False):
                             ['Diff/Int', ' '.join(re.findall(r'(?s)Diff/Int\s*?(.*?)(?:\n|\r\n?)', quickData)).split()],
                             ['Sequence', ' '.join(re.findall(r'(?s)Sequence\s*?(.*?)(?:\n|\r\n?)', quickData)).split()],
                             ['Valence', [re.search(r'(?s)Valence Condition.*?\s*' + sst.condElements[1][i] + r'\( \s*(.*?)\)', quickData).group(1).strip() for i in range(len(sst.condElements[1]))]]]
-                        # names
-                        condStdNames = [re.search(r'(?s)Standard Data.*?(?:\n|\r\n)\s*?' + str(i) + r'\s\S*\s*(.*?)\s', standardData).group(1).strip() for i in range(1,len(sst.condElements[1])+1)]
-                        # detection limits (from summary.csv)
-                        condStdDetLim = [(str(round(csvSummaryData[sst.condElements[1][i] + '(D.L.)'].median(),2)) + ' ± ' + str(round(csvSummaryData[sst.condElements[1][i] + '(D.L.)'].std(),2))) if (sst.condElements[1][i] + '(D.L.)' in csvSummaryData) else pd.Series('-',name=sst.condElements[1][i] + '(D.L.)') for i in range(len(sst.condElements[1]))]
-                        # project names
-                        condStdProjects = [re.search(r'(?s)Standard Condition.*?Project.*?\s*' + sst.condElements[1][i] + r'\s*\S{3}\s*' + condStdNames[i] + r'(.*?)\s*\S*(?:\n|\r\n)', quickData).group(1).strip() if re.search(r'(?s)Standard Condition.*?Project.*?\s*' + sst.condElements[1][i] + r'\s*\S{3}\s*' + condStdNames[i] + r'(.*?)\s*\S*(?:\n|\r\n)', quickData) != None else None for i in range(len(sst.condElements[1]))]
-                        # standard data conditions
+                        
+                        # merge to df (sst.methodSampleData)
+                        firstCol = []
+                        dataCol = []
+                        for i in range(1,len(sst.condSamples)):
+                            firstCol.append(sst.condSamples[i][0])
+                            dataCol.append(sst.condSamples[i][1])
+                        sst.methodSampleData = pd.DataFrame(data=dataCol, index=firstCol, columns=sst.condElements[1])
+                        
+                        # 4a13. "Standard Data" (in Method Section -> Quant. Conditions -> Full)
+                        #        -> infos in quickData & standardData
+                        #        -> merged to sst.methodStdData
+                        ###########################################################################
+                        # find values in txts
+                        condStdNames = [re.search(r'(?s)Standard Data.*?(?:\n|\r\n)\s*?' + str(i) + r'\s\S*\s*(.*?)\s', standardData).group(1).strip() for i in range(1,len(sst.condElements[1])+1)] # used below
+                        condStdProjects = [re.search(r'(?s)Standard Condition.*?Project.*?\s*' + sst.condElements[1][i] + r'\s*\S{3}\s*' + condStdNames[i] + r'(.*?)\s*\S*(?:\n|\r\n)', quickData).group(1).strip() if re.search(r'(?s)Standard Condition.*?Project.*?\s*' + sst.condElements[1][i] + r'\s*\S{3}\s*' + condStdNames[i] + r'(.*?)\s*\S*(?:\n|\r\n)', quickData) != None else None for i in range(len(sst.condElements[1]))] # used below
                         sst.condStd = ['Standard',
                             ['Std Name', condStdNames],
-                            ['Detection Limit (μg/g)', condStdDetLim],
+                            ['Detection Limit (μg/g)', [(str(round(csvSummaryData[sst.condElements[1][i] + '(D.L.)'].median(),2)) + ' ± ' + str(round(csvSummaryData[sst.condElements[1][i] + '(D.L.)'].std(),2))) if (sst.condElements[1][i] + '(D.L.)' in csvSummaryData) else pd.Series('-',name=sst.condElements[1][i] + '(D.L.)') for i in range(len(sst.condElements[1]))]],
                             ['Std Conc (Ox-wt%)', [re.search(r'(?s)Standard Data.*?(?:\n|\r\n)\s*?' + str(i) + r'\s*\S*\s*\S*\s*(.*?)\s', standardData).group(1).strip() if re.search(r'(?s)Standard Data.*?(?:\n|\r\n)\s*?' + str(i) + r'\s*\S*\s*\S*\s*(.*?)\s', standardData) != None else '' for i in range(1,len(sst.condElements[1])+1)]],
                             ['Std Project', condStdProjects],
                             ['Std File', [re.search(r'(?s)Standard Condition.*?Meas.*?\s*' + sst.condElements[1][i] + r'\s*\S{3}\s*' + condStdNames[i] + r'(.*?)(?:\n|\r\n)', quickData).group(1).strip().replace(condStdProjects[i], '').strip() if re.search(r'(?s)Standard Condition.*?Meas.*?\s*' + sst.condElements[1][i] + r'\s*\S{3}\s*' + condStdNames[i] + r'(.*?)(?:\n|\r\n)', quickData) != None else '' for i in range(len(sst.condElements[1]))]],
@@ -392,21 +653,7 @@ def kadiLoadFiles(parentContainer = False):
                             ['Std r-el', [re.search(r'(?s)r-el.*?(?:\n|\r\n)\s*?' + sst.condElements[1][i] + r'(?:\s*\S*\s*){4}(.*?)\s', standardData).group(1).strip() if re.search(r'(?s)r-el.*?(?:\n|\r\n)\s*?' + sst.condElements[1][i] + r'(?:\s*\S*\s*){4}(.*?)\s', standardData) != None else '' for i in range(len(sst.condElements[1]))]],
                             ['Std c/k-el', [re.search(r'(?s)c\/k-el.*?(?:\n|\r\n)\s*?' + sst.condElements[1][i] + r'(?:\s*\S*\s*){5}(.*?)\s', standardData).group(1).strip() if re.search(r'(?s)c\/k-el.*?(?:\n|\r\n)\s*?' + sst.condElements[1][i] + r'(?:\s*\S*\s*){5}(.*?)\s', standardData) != None else '' for i in range(len(sst.condElements[1]))]]]
                         
-                        # merge to dataframes
-                        firstCol = []
-                        dataCol = []
-                        for i in range(1,len(sst.condInfos)):
-                            firstCol.append(sst.condInfos[i][0])
-                            dataCol.append(sst.condInfos[i][1])
-                        sst.methodGeneralData = pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])
-                        
-                        firstCol = []
-                        dataCol = []
-                        for i in range(1,len(sst.condSamples)):
-                            firstCol.append(sst.condSamples[i][0])
-                            dataCol.append(sst.condSamples[i][1])
-                        sst.methodSampleData = pd.DataFrame(data=dataCol, index=firstCol, columns=sst.condElements[1])
-                        
+                        # merge to df (sst.methodStdData)
                         firstCol = []
                         dataCol = []
                         for i in range(1,len(sst.condStd)):
@@ -414,28 +661,35 @@ def kadiLoadFiles(parentContainer = False):
                             dataCol.append(sst.condStd[i][1])
                         sst.methodStdData = pd.DataFrame(data=dataCol, index=firstCol, columns=sst.condElements[1])
                         
-                        
                     except:
                         st.error('An error occurred while merging your ' + quickName + '-file and ' + standardName + '-file, please check them and try again.', icon=':material/sync_problem:')
                         kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
                         kadiError = True
                         st.stop()
 
-                    # merge data from normalFile & csvSummary
-                    ############################################
+
+                    # 4a2. "Quantitative Data" table (in Data Filter):
+                    #      merge data from csvSummaryData & normalData -> sst.csvMerged
+                    #      - csvSummaryData: all measurements
+                    #      - normalData: comment, datetimes, diameters
+                    #      --> merge both on comment
+                    #######################################################################
+                    
                     try:                           
-                        new = pd.merge(csvSummaryData, df, on='Point', validate='one_to_one')
+                        mergeCsvNormal = pd.merge(csvSummaryData, normalData, on='Comment', validate='one_to_one')
+                        
                         # delete unneeded columns
                         k = ['Norm%', 'mole%', 'K-ratio', 'K-raw', 'Net', 'BG-', 'BG+', 'L-value', 'Error%', 'D.L.', 'Unnamed'] # by keyword
                         for key in k:
-                            new = new[new.columns.drop(list(new.filter(regex=key)))]
-                        new = new.drop(columns=new.columns[new.columns == ' ']) # without column header
-                        # set index
-                        new = new.set_index('Point')
+                            mergeCsvNormal = mergeCsvNormal[mergeCsvNormal.columns.drop(list(mergeCsvNormal.filter(regex=key)))]
+                        # drop column header
+                        mergeCsvNormal = mergeCsvNormal.drop(columns=mergeCsvNormal.columns[mergeCsvNormal.columns == ' '])
+                        # set index to Point ###################Comment (-> rename to Sample Name)
+                        mergeCsvNormal = mergeCsvNormal.set_index('Point')#.rename_axis('Sample Name')
                         # rename some headers
-                        new.columns = new.columns.str.replace('Mass%', 'wt%').str.replace('Cation', 'cat/24ox').str.replace('(', ' (').str.replace('Comment','Sample Name')
-                        # save in session state
-                        sst.csvMerged = new 
+                        mergeCsvNormal.columns = mergeCsvNormal.columns.str.replace('Mass%', 'wt%').str.replace('Cation', 'cat/24ox').str.replace('(', ' (').str.replace('Comment', 'Sample Name')
+                        # save in sst
+                        sst.csvMerged = mergeCsvNormal
                     except:
                         st.error('An error occurred while merging your ' + csvSummaryName + '-file and ' + normalName + '-file, please check them and try again.', icon=':material/sync_problem:')
                         kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
@@ -443,8 +697,14 @@ def kadiLoadFiles(parentContainer = False):
                         st.stop()
                     
                     
-                    # short measurement conditions
-                    ################################
+                    # 4a3. "Compact Measurement Conditions" -> sst.shortMeasCond
+                    #      merge data from above:
+                    #      - sst.methodGeneralData
+                    #      - sst.methodSampleData
+                    #      - sst.methodStdData
+                    #      - sst.csvMerged
+                    ###############################################################
+                    
                     try:
                         # methodData
                         shortMeasCond0 = sst.methodGeneralData.loc[['Accelerating Voltage (kV)', 'Target Probe Current (nA)'], :]                    
@@ -463,34 +723,167 @@ def kadiLoadFiles(parentContainer = False):
                         shortMeasCond = pd.concat([shortMeasCond1, shortMeasCond2, shortMeasCond3]).transpose()
                         sst.shortMeasCond[0] = shortMeasCond0
                         sst.shortMeasCond[1] = shortMeasCond                    
+                    
                     except:
                         st.error('An error occurred while merging your ' + csvSummaryName + '-file and ' + quickName + '-file, please check them and try again.', icon=':material/sync_problem:')
                         kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
                         kadiError = True
                         st.stop()
                 
-
-                    st.write('Merging complete!')
+                
+                # 4b. MAPS ONLY
+                # -> infos in json
+                ####################################################
+                
+                elif len(mapFiles) > 0 and len(mapJsonsData) > 0:
+                
+                    # 4b1. Map Conditions:
+                    # - 4b11. "General Parameters" (mapJsonsData -> sst.mapGeneralData)
+                    # - 4b12. "WDS Measurement Conditions" (mapJsonsData -> sst.mapWdsData)
+                    # - 4b13. "EDS Measurement Conditions" (mapJsonsData -> sst.mapEdsData)
+                    ###########################################################################
                     
-                    ############################
-                    # 4. load filter settings
-                    ############################
-                    if len(kadiFilter) >= 0:
-                        st.write('Loading saved filter settings ...')
-                        for i, filterID in enumerate(kadiFilter.keys()):
-                            data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + filterID + '/download'))
-                            sst.kadiFilter[data['updateTime']] = data
+                    try:                   
+                        # for every map
+                        for mapNameJson in mapJsonsData.keys():
+                        
+                            # 4b11. "General Information"
+                            #        -> infos in mapJsonsData
+                            #        -> merged to sst.mapGeneralData for map
+                            #########################################################
+
+                            # get data from jsons
+                            mapGeneral = [ 
+                                ['Saved Path', mapJsonsData[mapNameJson]['general parameters']['save path']] if 'save path' in mapJsonsData[mapNameJson]['general parameters'] else ['Saved Path', ''], 
+                                ['Project', mapJsonsData[mapNameJson]['general parameters']['project name']] if 'project name' in mapJsonsData[mapNameJson]['general parameters'] else ['Project', ''], 
+                                ['Sample Name', mapJsonsData[mapNameJson]['general parameters']['sample name']] if 'sample name' in mapJsonsData[mapNameJson]['general parameters'] else ['Sample Name', ''],
+                                ['Date', mapJsonsData[mapNameJson]['general parameters']['date']] if 'date' in mapJsonsData[mapNameJson]['general parameters'] else ['Date', ''],
+                                ['Accelerating Voltage (kV)', mapJsonsData[mapNameJson]['general parameters']['accelerating voltage (kV)']] if 'accelerating voltage (kV)' in mapJsonsData[mapNameJson]['general parameters'] else ['Accelerating Voltage (kV)', ''], 
+                                ['Target Probe Current (nA)', round((float(mapJsonsData[mapNameJson]['general parameters']['target probe current (nA)'])/float('1.0e-09')),3)] if 'target probe current (nA)' in mapJsonsData[mapNameJson]['general parameters'] else ['Target Probe Current (nA)', ''], 
+                                ['Probe Current (nA)', round((float(mapJsonsData[mapNameJson]['general parameters']['probe current (nA)'])/float('1.0e-09')),3)] if 'probe current (nA)' in mapJsonsData[mapNameJson]['general parameters'] else ['Probe Current (nA)', ''], 
+                                ['Probe Diameter (µm)', mapJsonsData[mapNameJson]['general parameters']['probe diameter (µm)']] if 'probe diameter (µm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Probe Diameter (µm)', ''], 
+                                ['Dwell Time (ms)', mapJsonsData[mapNameJson]['general parameters']['dwell time (ms)']] if 'dwell time (ms)' in mapJsonsData[mapNameJson]['general parameters'] else ['Dwell Time (ms)', ''], 
+                                ['No. of Pixels (x | y)', mapJsonsData[mapNameJson]['general parameters']['number of pixels: x, y'].replace(' ', ' | ')] if 'number of pixels: x, y' in mapJsonsData[mapNameJson]['general parameters'] else ['No. of Pixels (x | y)', ''], 
+                                ['Pixel Size (µm) (x | y)', ' '.join(mapJsonsData[mapNameJson]['general parameters']['pixel size: x, y (µm)'].split()[:2]).replace(' ', ' | ')] if 'pixel size: x, y (µm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Pixel Size (x | y)', ''], 
+                                ['Stage Position (mm): Center (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position center (mm)'].replace(' ', ' | ')] if 'stage position center (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Center (x | y | z)', ''], 
+                                ['Stage Position (mm): Upper left (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position upper left (mm)'].replace(' ', ' | ')] if 'stage position upper left (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Upper left (x | y | z)', ''],  
+                                ['Stage Position (mm): Upper right (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position upper right (mm)'].replace(' ', ' | ')] if 'stage position upper right (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Upper right (x | y | z)', ''],  
+                                ['Stage Position (mm): Lower right (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position lower right (mm)'].replace(' ', ' | ')] if 'stage position lower right (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Lower right (x | y | z)', ''],  
+                                ['Stage Position (mm): Lower left (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position lower left (mm)'].replace(' ', ' | ')] if 'stage position lower left (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Lower left (x | y | z)', ''], 
+                                ['WDS Elements', ', '.join(sorted(mapJsonsData[mapNameJson]['general parameters']['wds elements']))] if 'wds elements' in mapJsonsData[mapNameJson]['general parameters'] else ['WDS Elements', ''], 
+                                ['EDS Elements', ', '.join(sorted(mapJsonsData[mapNameJson]['general parameters']['eds elements']))] if 'eds elements' in mapJsonsData[mapNameJson]['general parameters'] else ['EDS Elements', '']
+                            ]
+                            
+                            # merge to df
+                            firstCol = []
+                            dataCol = []
+                            for i in range(0,len(mapGeneral)):
+                                firstCol.append(mapGeneral[i][0])
+                                dataCol.append(mapGeneral[i][1])
+                            sst.mapGeneralData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])
+                    
+                            # 4b12. "WDS Measurement Conditions"
+                            #        -> infos in mapJsonsData
+                            #        -> merged to sst.mapWdsData for map
+                            #####################################################
+                        
+                            # get data from jsons if there are wds elements
+                            if 'wds elements' in mapJsonsData[mapNameJson]['general parameters']:
+
+                                # get wds elements
+                                wdsElements = sorted(mapJsonsData[mapNameJson]['general parameters']['wds elements'])
+                                
+                                # get wds data
+                                mapWDS = [
+                                    ['Characteristic Line', [mapJsonsData[mapNameJson]['element specific parameters'][element]['characteristic line'] if 'characteristic line' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Characteristic Line', ''] for element in wdsElements]],
+                                    ['Order', [mapJsonsData[mapNameJson]['element specific parameters'][element]['order'] if 'order' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Order', ''] for element in wdsElements]],
+                                    ['Analyser Crystal', [mapJsonsData[mapNameJson]['element specific parameters'][element]['analyser crystal'] if 'analyser crystal' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Analyser Crystal', ''] for element in wdsElements]],
+                                    ['PHA Mode', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA mode'] if 'PHA mode' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Mode', ''] for element in wdsElements]],
+                                    ['PHA Gain', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA gain'] if 'PHA gain' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Gain', ''] for element in wdsElements]],
+                                    ['PHA Base Level (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA base level (V)'] if 'PHA base level (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Base Level (V)', ''] for element in wdsElements]],
+                                    ['PHA Window (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA window (V)'] if 'PHA window (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Window (V)', ''] for element in wdsElements]],
+                                    ['Detector High V. (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['detector HV (V)'] if 'detector HV (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Detector High V. (V)', ''] for element in wdsElements]],
+                                    ['Sequence', [mapJsonsData[mapNameJson]['element specific parameters'][element]['sequence'] if 'sequence' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Sequence', ''] for element in wdsElements]],
+                                    ['Spectrometer', [mapJsonsData[mapNameJson]['element specific parameters'][element]['spectrometer'] if 'spectrometer' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Spectrometer', ''] for element in wdsElements]],
+                                    ['Spectrometer radius (mm)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['spectrometer radius (mm)'] if 'spectrometer radius (mm)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Spectrometer radius (mm)', ''] for element in wdsElements]],
+                                    ['Peak (mm)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['peak (mm)'] if 'peak (mm)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Peak (mm)', ''] for element in wdsElements]]
+                                ]
+                                
+                                # merge to df
+                                firstCol = []
+                                dataCol = []
+                                for i in range(0,len(mapWDS)):
+                                    firstCol.append(mapWDS[i][0])
+                                    dataCol.append(mapWDS[i][1])
+                                sst.mapWdsData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=wdsElements)
+                                
+                            # 4b13. "EDS Measurement Conditions"
+                            #        -> infos in mapJsonsData
+                            #        -> merged to sst.mapEdsData for map
+                            #####################################################
+                            
+                            # get data from jsons if there are eds elements
+                            if 'eds elements' in mapJsonsData[mapNameJson]['general parameters']:
+                            
+                                # get eds elements
+                                edsElements = sorted(mapJsonsData[mapNameJson]['general parameters']['eds elements'])
+                                
+                                # get eds data
+                                mapEDS = [
+                                    ['Characteristic Line', [mapJsonsData[mapNameJson]['element specific parameters'][element]['characteristic line'] if 'characteristic line' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Characteristic Line', ''] for element in edsElements]],
+                                    ['ROI Start (keV)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['ROI start (keV)'] if 'ROI start (keV)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['ROI Start (keV)', ''] for element in edsElements]],
+                                    ['ROI End (keV)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['ROI end (keV)'] if 'ROI end (keV)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['ROI End (keV)', ''] for element in edsElements]],
+                                    ['Sequence', [mapJsonsData[mapNameJson]['element specific parameters'][element]['sequence'] if 'sequence' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Sequence', ''] for element in edsElements]]
+                                ]
+                                
+                                ## merge to df
+                                firstCol = []
+                                dataCol = []
+                                for i in range(0,len(mapEDS)):
+                                    firstCol.append(mapEDS[i][0])
+                                    dataCol.append(mapEDS[i][1])
+                                sst.mapEdsData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=edsElements)
+                    
+                    except:
+                        st.error('An error occurred while processing your ' + mapJsonName + '-file(s), please check them and try again.', icon=':material/sync_problem:')
+                        kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
+                        kadiError = True
+                        st.stop()
+                    
+                    
+                ###########################################
+                # 5. load saved filter settings from kadi
+                ###########################################
+                    
+                # 5a. QUANT (or MAPS + QUANT)
+                #     -> Data filter settings for Quantitative Data table
+                ###########################################################
+
+                if len(kadiFilter) > 0:
+                    
+                    st.write('Loading saved data filter settings ...')
+                    
+                    for i, filterID in enumerate(kadiFilter.keys()):
+                        data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + filterID + '/download'))
+                        sst.kadiFilter[data['updateTime']] = data
                 
+                # 5b. MAPS ONLY
+                #     -> Map display settings for Element Maps
+                ################################################
+                
+                if len(mapFilter) > 0:
+                    
+                    st.write('Loading saved map settings ...')
+                    
+                    for i, filterID in enumerate(mapFilter.keys()):
+                        data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + filterID + '/download'))
+                        sst.mapFilter[data['updateTime']] = data
+
 
                 #######################
-                #
-                #       MAPS
-                #
+                # 6. load map files 
                 #######################
                 
-                ###################
-                #  load map files 
-                ###################
                 if len(mapFiles) > 0:
                     # loading progress bar
                     mapsLoaded = 0
@@ -498,36 +891,32 @@ def kadiLoadFiles(parentContainer = False):
                     progressTxt = 'Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'
                     mapProgress = st.progress(0, text=progressTxt)
                     for mapId in mapFiles.keys():
-                        parts = mapFiles[mapId].split(' ')
-                        if len(parts) == 5:                      
+                        parts = mapFiles[mapId].rstrip('.csv').split(' ')
+                        # check length of parts (3 = COMPO, 5 = other)
+                        if len(parts) != 5 and len(parts) != 3:
+                            st.error('Wrong format for map: ' + str(mapFiles[mapId]) + '. Please contact us via mail (see ' + fn.pageNames['help']['ico'] + ' **' + fn.pageNames['help']['name'] + '**).', icon=':material/sync_problem:')
+                            time.sleep(2)
+                        else:
                             sst.mapData[mapFiles[mapId]] = {
-                                                            'type': ('EDS' if 'Eds' in parts[2] else 'WDS'),
-                                                            'set': int(parts[1]),
-                                                            'no': int(parts[2].lstrip('EdsData').lstrip('data')),
-                                                            'element': parts[3],
-                                                            'characteristicLine': parts[4].rstrip('.csv'),
+                                                            'sample': str(parts[1]),
+                                                            'type': str(parts[2]), # EDS, WDS, COMPO
+                                                            'element': (parts[3] if len(parts) > 3 else ''), # not in COMPO
+                                                            'characteristicLine': (parts[4] if len(parts) > 3 else ''), # Ka, La # not in COMPO
                                                             'imgData': pd.read_csv(
                                                                     io.StringIO(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + mapId + '/download').decode('utf_8')), header=None, index_col=False, engine='python'
                                                                     ),
-                                                            }              
-                        
+                                                            }
                         
                         mapsLoaded = mapsLoaded + 1
                         progressTxt = 'Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'                                    
                         mapPercent = (100/len(mapFiles)*mapsLoaded)/100
                         mapProgress.progress(mapPercent, text=progressTxt)
-
-
-                #######################
-                #
-                #       ALL
-                #
-                #######################
                 
-                #################################################
-                #    load image files (after merging to 
-                #    decrease loading time if above fails)
-                #################################################
+
+                ########################
+                # 7. load image files 
+                ########################
+                
                 if len(imageFiles) >= 0:
                     # loading progress bar
                     imgLoaded = 0
@@ -544,10 +933,12 @@ def kadiLoadFiles(parentContainer = False):
                         imgPercent = (100/len(imageFiles)*imgLoaded)/100
                         imgProgress.progress(imgPercent, text=progressTxt)
                     sst.imageFiles = imageFiles
-                    
-                ###########
-                # Success
-                ###########
+                
+                
+                ################
+                # 8. Success
+                ################
+                
                 # re-check for errors in case st.stop() doesn't work
                 if not kadiError:
                     sst.kadiLoaded = True
@@ -559,7 +950,9 @@ def kadiLoadFiles(parentContainer = False):
                     sst.infoToast['txt'] = 'Record successfully loaded.'
                     sst.infoToast['ico'] = ':material/data_check:'
                     st.switch_page('pages/data-viewer.py')
+                    
         except KeyError:
+            # 403 Error: Forbidden
             if 'code' in response.json() and response.json()['code'] == 403:
                 st.error('You don\'t have the permission to access [**this record**&thinsp;:link:](https://kadi4mat.iam.kit.edu/records/' + str(sst.recordID) + '?tab=files). It is either read-protected or not readable by the server.', icon=':material/vpn_key_alert:')
                 sst.recordID = ''
@@ -590,7 +983,7 @@ def kadiLoadImg(url):
 
 
 # upload filters to kadi
-def kadiUploadFilters(parentContainer):
+def kadiUploadFilters(parentContainer, uploadType):
     parentContainer.empty()
     with parentContainer.container():
         with st.status('Uploading filter settings to Kadi4Mat, please wait ...', expanded = True) as kadiUploadStatus:   
@@ -601,30 +994,45 @@ def kadiUploadFilters(parentContainer):
             else:
                 authPAT = sst.kadiPAT
             headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authPAT}
-            metadata = {'name': 'filter_' + sst.dataViewerFilter['updateTime'] + '.txt', 'size': len(json.dumps(sst.dataViewerFilter))}
+            if uploadType == 'data':
+                metadata = {'name': 'filter_' + sst.dataViewerFilter['updateTime'] + '.txt', 'size': len(json.dumps(sst.dataViewerFilter))}
+            else:
+                metadata = {'name': 'mapSettings_' + sst.mapEditFilter['updateTime'] + '.txt', 'size': len(json.dumps(sst.mapEditFilter))}
+                
             # start upload process
             response = requests.post(url, headers=headers, json=metadata)
-                        
+            
             if response.status_code == 201:
                 st.write('Starting upload progress ...')
                 uploadResponse = response.json()
                 uploadID = uploadResponse['id']
                 uploadURL = uploadResponse['_actions']['upload_data']
-                uploadData = json.dumps(sst.dataViewerFilter)
+                if uploadType == 'data':
+                    uploadData = json.dumps(sst.dataViewerFilter)
+                else:
+                    uploadData = json.dumps(sst.mapEditFilter)
                 uploadHeaders = {'Content-Type': 'application/octet-stream', 'Authorization': 'Bearer ' + authPAT}
                 # send data content
                 response = requests.put(uploadURL, headers=uploadHeaders, data=uploadData)
                 
                 if response.status_code == 200 or response.status_code == 201:
-                    st.success('Filter successfully uploaded.', icon=':material/cloud_done:')
-                    kadiUploadStatus.update(label='Filter successfully uploaded.', state='complete')
+                    if uploadType == 'data':
+                        st.success('Filter successfully uploaded.', icon=':material/cloud_done:')
+                        kadiUploadStatus.update(label='Filter successfully uploaded.', state='complete')
+                    else:
+                        st.success('Map settings successfully uploaded.', icon=':material/cloud_done:')
+                        kadiUploadStatus.update(label='Map settings successfully uploaded.', state='complete')
                 else:
                     st.error('Upload failed (' + str(response.reason) + ').', icon=':material/sync_problem:')
                     kadiUploadStatus.update(label='Upload failed (' + str(response.reason) + ').', state='error')
             else:
                 if response.status_code == 409:
-                    st.error('Filter already uploaded!', icon=':material/cloud_done:')
-                    kadiUploadStatus.update(label='Filter already uploaded!', state='error')
+                    if uploadType == 'data':
+                        st.error('Filter already uploaded!', icon=':material/cloud_done:')
+                        kadiUploadStatus.update(label='Filter already uploaded!', state='error')
+                    else:
+                        st.error('Map settings already uploaded!', icon=':material/cloud_done:')
+                        kadiUploadStatus.update(label='Map settings already uploaded!', state='error')
                 else:
                     st.error('Upload failed (' + str(response.reason) + ').', icon=':material/sync_problem:')
                     kadiUploadStatus.update(label='Upload failed ( ' + str(response.reason) + ').', state='error')

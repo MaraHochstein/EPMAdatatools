@@ -8,9 +8,7 @@ from utils.imports import (st, sst, OAuth2Component, requests, urllib, datetime,
 # variables
 #######################
 global variableList
-variableList = [
-    #['test', ''],
-    
+variableList = [    
     # record variables
     ['recordID', ''],
     ['recordName', ''],
@@ -22,22 +20,35 @@ variableList = [
     ['imageData', []],
     
     ['mapData', {}],
+    ['mapGeneralData', {}],
+    ['mapWdsData', {}],
+    ['mapEdsData', {}],
     
     ['csvMerged', pd.DataFrame()],
     
     ['condElements', {}],
     ['condInfos', {}],
+    ['condMapInfos', {}],
     ['condSamples', {}],
+    ['condMapSamples', {}],
     ['condStd', {}],
     ['methodGeneralData', pd.DataFrame()],
     ['methodSampleData', pd.DataFrame()],
     ['methodStdData', pd.DataFrame()],
-    ['shortMeasCond', {}],
+    ['shortMeasCond', dict()],
+    
+    ['standardsXlsx', dict()],
+    ['standardsXlsxExport', {}],
     
     ['kadiFilter', {}],
     ['dataViewerFilter', dict()],
     ['csvMergedFiltered', pd.DataFrame()],
     
+    ['mapFilter', {}],
+    ['mapEditFilter', dict()],
+    ['mapEdit', ''],
+    ['mapImages', dict()],
+
     ['referenceDict', {}],
     ['selectedMinerals', []],
     ['csvMergedMinerals', pd.DataFrame()],
@@ -55,7 +66,8 @@ variableList = [
     
     # other variables
     ['infoToast', {}], # messages for st.toast after switch_page
-    ['createZip', 0], # for export btn
+    ['createZipImg', 0], # for export btn
+    ['createZipMap', 0], # for export btn
 ]
 
 global pageNames
@@ -81,7 +93,7 @@ def checkSessionState():
     for variable in variableList:
         if variable[0] not in sst:
             initSessionState()
-            sst.infoToast['txt'] = 'There was an error checking the health of your streamlit session-state. Initialized again. You may need to reload your data.'
+            sst.infoToast['txt'] = 'Streamlit session-state had to be initialized again. You may need to reload your data.'
             sst.infoToast['ico'] = ':material/sync_problem:'
             st.switch_page('main.py')
         
@@ -91,11 +103,11 @@ def checkSessionState():
 # save variable in session_state
 def saveVar(variableName, variable):
     if variableName not in sst:
-        sst[variableName] = variable
+        sst[variableName] = copy.deepcopy(variable)
 
 # reset one session_state variable
 def resetVar(variableName):
-    sst[variableName] = [variable[1] for variable in variableList if variable[0] == variableName][0]
+    sst[variableName] = [copy.deepcopy(variable[1]) for variable in variableList if variable[0] == variableName][0]
     
 # reset session_state (Clear data button in sidebar)
 def deleteSessionState():
@@ -186,51 +198,18 @@ def menuRedirect():
         st.switch_page('main.py')
     menu()
 
-# info container
-## show if user is logged in with Kadi
-def showInfoLoggedIn(container):
-    if sst.userType != None:
-        if sst.userLoggedIn:
-            with container.empty():
-                left, right = st.columns([2,1])
-                with left:
-                    st.success('Logged in as:  \n_' + sst.kadiUserName + '_')
-                with right:
-                    st.button(':key:  \nLog out', use_container_width=True, on_click=kadiLogout, key='kadilogout')
-        else:
-            with container.empty():
-                container = st.warning('Not logged in with Kadi4Mat', icon=':material/vpn_key_off:')
-                container
 
-## show if data is loaded
-def showInfoDataLoad(container):
-    if sst.userType != None:
-        if sst.kadiLoaded:
-            with container.empty():
-                left, right = container.columns([2,1])
-                with left:
-                    if sst.recordName != '':
-                        st.success('EPMA data loaded:  \n_@' + sst.recordName + '_')
-                    elif sst.userType == 'demo':
-                        st.success('EPMA data loaded:  \n_Quantitative Demo Dataset_')
-                    
-                with right:
-                    st.button(':wastebasket:  \nClear data', use_container_width=True, on_click=deleteSessionState)
-        else:
-            with container.empty():
-                container = st.warning('EPMA data not loaded')
-                container
 
 # render sidebar & toast
 def renderSidebar(menuType):
     # no relative path because sidebar is rendered from different dir
-    st.logo('https://epmatools.streamlit.app/~/+/app/static/transparent.png', icon_image='https://epmatools.streamlit.app/~/+/app/static/logo.png')
+    st.logo('https://epmatools-beta.streamlit.app/~/+/app/static/transparent.png', icon_image='https://epmatools.streamlit.app/~/+/app/static/logo.png')
     
     with st.sidebar:
         if sst.userType == 'demo':
             left, right = st.columns((2,8))
             with left:
-                st.title(':rocket:')
+                st.title(':material/rocket_launch:')
             with right:
                 st.title('Demo')
         elif sst.userType == 'ag':
@@ -263,13 +242,29 @@ def renderSidebar(menuType):
 
     with st.sidebar:
         st.divider()
-        
-    with st.sidebar:
-        infoLoaded = st.empty()
-    showInfoDataLoad(infoLoaded)
+    
+    # show info data loaded
+    if sst.userType != None:
+        with st.sidebar:
+            if sst.kadiLoaded:
+                if sst.recordName != '':
+                    date, txt = sst.recordName.replace('guf-ifg-epma-','').split('-',1)
+                    showName = f"{date[:4]}-{date[4:6]}-{date[6:]} {txt.replace('-',' ')}"
+                    st.success(':material/check: **' + showName + '**' + (('  \n\n_' + sst.kadiMetaData.loc['Description', 'Value'].replace('guf-ifg-epma-','') + '_') if ('Description' in sst.kadiMetaData.index and sst.kadiMetaData.loc['Description', 'Value'] != '') else ''))
+                elif sst.userType == 'demo':
+                    st.success(':material/check: **Quantitative Demo Dataset**')          
+            else:
+                st.warning(':material/close: No dataset loaded')
+            
+    if sst.kadiLoaded:
+        with st.sidebar:
+            st.button('**Clear data**', icon=':material/delete:', use_container_width=True, on_click=deleteSessionState)
+    
+        with st.sidebar:
+            st.divider()
     
     showInfoToast()
-
+    
 
 #####################
 # OAuth
@@ -312,6 +307,14 @@ def kadiLogout():
 #####################
 # CSS
 #####################
+# add noLines number of newlines
+def addLines(noLines):
+    i = 0
+    while i < noLines:
+        st.write('')
+        i += 1
+
+# load custom css
 def loadCSS():
     #####################################
     # hide tracebacks in error messages
@@ -465,7 +468,7 @@ def loadCSS():
     st.html(
     """
     <style>
-        div[data-testid=toastContainer] {
+        div[data-testid=stToastContainer] {
                 padding: 50px 10px 10px 10px;
                 align-items: end;
                 position: sticky; 
@@ -476,14 +479,8 @@ def loadCSS():
                 width: 20%;
             }
              
-            [data-testid=toastContainer] [data-testid=stMarkdownContainer] > p {
+            [data-testid=stToastContainer] [data-testid=stMarkdownContainer] > p {
                 font-size: 1.1rem;
-                padding: 10px 10px 10px 10px;
-            }
-            
-            [data-testid=stToastDynamicIcon] {
-                padding-top: 15px;
-                padding-left: 10px;
             }
     </style>
     """)

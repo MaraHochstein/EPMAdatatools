@@ -694,10 +694,10 @@ fn.renderSidebar('menuRedirect')
 #########################
 st.title('Mineral Identification', anchor=False)
 
-if not sst.kadiLoaded:
-    st.info('Please import your EPMA data in **' + fn.pageNames['import']['name'] + '** in the sidebar menu.', icon=fn.pageNames['import']['ico'])
+if not sst.kadiLoaded or sst.csvMerged.empty:
+    st.info('No measurement data found in this record.', icon=fn.pageNames['import']['ico'])
 else:
-    tab1, tab2 = st.tabs([':gem: Mineral identification', ':bar_chart: Ternary Diagrams'])
+    tab1, tab2 = st.tabs([':material/diamond: Mineral identification', ':material/bar_chart: Ternary Diagrams'])
     
     ############################
     # Mineral identification
@@ -757,7 +757,7 @@ else:
                                         label_visibility = 'collapsed',
                                         disabled = True,
                                     )
-                st.info('No filters applied. Check out **' + fn.pageNames['viewer']['name'] + '** to use filtered data instead.', icon=fn.pageNames['viewer']['ico'])
+                st.info('No filters applied. Check out ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** to use filtered data instead.', icon=':material/filter_alt_off:')
                                     
             if selectData == 'Filtered data':
                 selectedData = sst.csvMergedFiltered

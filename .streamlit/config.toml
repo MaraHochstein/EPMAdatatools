@@ -17,4 +17,4 @@ enableStaticServing = true
 fastReruns = false
 
 [logger]
-level = 'error' # 'error', 'warning', 'info', or 'debug'
+level = 'info' # 'error', 'warning', 'info', or 'debug'

@@ -8,7 +8,14 @@ from utils.funcKadi import kadiLoadFiles
 
 from streamlit_oauth import OAuth2Component # oauth button component
 
-oauth2 = OAuth2Component(
+# kadi doesn't support the default httpx_oauth 0.15.1 method 'client_secret_basic' so we define a custom component (see issue #33)
+class kadiOAuth2Component(OAuth2Component):
+    def __init__(self, *args, token_endpoint_auth_method='client_secret_post', **kwargs):
+        # call original __init__ with modified parameter
+        super().__init__(*args, token_endpoint_auth_method=token_endpoint_auth_method, **kwargs)
+
+# use new kadiComponent here
+oauth2 = kadiOAuth2Component(
     client_id = st.secrets['oauthClientID'],
     client_secret = st.secrets['oauthClientSecret'],
     authorize_endpoint = 'https://kadi4mat.iam.kit.edu/oauth/authorize',
@@ -16,6 +23,7 @@ oauth2 = OAuth2Component(
     refresh_token_endpoint = 'https://kadi4mat.iam.kit.edu/oauth/token',
     revoke_token_endpoint = 'https://kadi4mat.iam.kit.edu/oauth/revoke',
 )
+
 kadiApiBaseURL = 'https://kadi4mat.iam.kit.edu'
 
 # set up variables in session_state
@@ -37,29 +45,22 @@ fn.loadCSS()
 st.html(
     """
 <style>
-[data-testid=baseButton-primary] {
+[data-testid=stBaseButton-primary] {
     height: auto;
-    padding-top: 10px !important;
-    padding-bottom: 10px !important;
+    padding-top: 7px !important;
+    padding-bottom: 7px !important;
     border: none;
+    border-radius: 5px;
     background-color: white;
     color: black;
-    
 }
 
-[data-testid=baseButton-primary] [data-testid=stMarkdownContainer] > p {
+[data-testid=stBaseButton-primary] [data-testid=stMarkdownContainer] > p {
                 font-size: 1.2rem;
-            }
-
-[data-testid=baseLinkButton-primary] {
-    height: auto;
-    padding-top: 20px !important;
-    padding-bottom: 20px !important;
+                font-weight: 1000;
 }
-            
-[data-testid=baseLinkButton-primary] [data-testid=stMarkdownContainer] > p {
-                font-size: 1.2rem;
-            }
+
+
 </style>
 """
 )
@@ -80,8 +81,9 @@ col1, col2, col3 = st.columns(3)
 
 # Demo version
 with col1:
-    if st.button(':rocket: **Start with Demo**', 
+    if st.button('Start with Demo', 
         help='Load our preconfigured dataset to have a look at the functions of EPMA Data Tools!', 
+        icon=':material/rocket_launch:',
         type='primary', use_container_width=True):
             if sst.userType == 'kadi':
                 fn.kadiLogout()
@@ -94,8 +96,9 @@ with col1:
             kadiLoadFiles()
 # PW required
 with col2:
-    if st.button(':key: **Access records from the IfG GUF**', 
+    if st.button('Access records from the IfG GUF', 
         help='Click this to browse the EPMA records of the Institute for Geosciences of the Goethe University Frankfurt.  \nYou may need a password to load the data of the records.', 
+        icon=':material/passkey:',
         type='primary', use_container_width=True):
             if sst.userType == 'kadi':
                 fn.kadiLogout()
@@ -111,11 +114,13 @@ with col3:
         result = oauth2.authorize_button(
             name='Login with Kadi4Mat',
             icon='https://kadi4mat.readthedocs.io/en/stable/_static/favicon.ico',
-            redirect_uri='https://epmatools.streamlit.app/component/streamlit_oauth.authorize_button',
+            redirect_uri= st.secrets['oauthRedirectUri'] + 'component/streamlit_oauth.authorize_button',
             scope='',
             key='kadi',
-            extras_params={},
+            extras_params={'response_type':'code'},
+            pkce='S256',
             use_container_width=True,
+            auto_click=False
             )
         if result:
             # set tokens
@@ -137,7 +142,7 @@ with col3:
             sst.userType = 'kadi'
             st.switch_page('pages/data-import.py')
     else:
-        st.button(':key:  \nLog out',type='primary', use_container_width=True, on_click=fn.kadiLogout, key='kadilogout')
+        st.button('Log out',type='primary', icon=':material/logout:', use_container_width=True, on_click=fn.kadiLogout, key='kadilogout')
 
 st.divider()
 

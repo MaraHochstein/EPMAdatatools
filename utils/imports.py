@@ -17,6 +17,7 @@ import io
 import re # regex search
 import os
 import copy # make deepcopy of var
+import openpyxl # for xlsx processing
 
 # images
 from PIL import Image

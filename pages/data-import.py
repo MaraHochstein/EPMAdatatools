@@ -23,7 +23,7 @@ fn.loadCSS()
 
 
 #########################
-# variables
+# variables ----- weg?
 #########################
 standardFilenameCSV = 'summary[timestamp].csv'
 standardFilenameNormalFile = 'normal.txt'
@@ -42,9 +42,7 @@ def showKadiImport():
         with formPlaceholder.container():
             st.info('You are currently not logged in with Kadi4Mat. Other options will be available after login.', icon=':material/vpn_key_off:')
     # logged in        
-    else:                    
-        
-            
+    else:                        
         useExample = 0
         formPlaceholder = st.empty()
         with formPlaceholder.container():
@@ -54,14 +52,14 @@ def showKadiImport():
             browseType = st.selectbox('Search for records:',browseTypes, label_visibility='collapsed')
             left, right = st.columns((1, 20))
             if browseType == browseTypes[0]:
-                    # records of the user
-                    if len(sst.userRecords) == 0: # check if records are already loaded
-                        kadiGetUserRecords()
-                    left.write('↳')
-                    with right:
-                        st.write('2. Please select your record:')
-                        selectedRecord = st.selectbox('selectKadiRecordByName', sorted(sst.userRecords.values()), format_func=lambda x: "@" + str(x), disabled=(not sst.userLoggedIn), label_visibility='collapsed')
-                        recordID = str({v: k for k, v in sst.userRecords.items()}.get(selectedRecord))
+                # records of the user
+                if len(sst.userRecords) == 0: # check if records are already loaded
+                    kadiGetUserRecords()
+                left.write('↳')
+                with right:
+                    st.write('2. Please select your record:')
+                    selectedRecord = st.selectbox('selectKadiRecordByName', sorted(sst.userRecords.values()), format_func=lambda x: "@" + str(x), disabled=(not sst.userLoggedIn), label_visibility='collapsed', index=None)
+                    recordID = str({v: k for k, v in sst.userRecords.items()}.get(selectedRecord))
                     
             elif browseType == browseTypes[1]:
                 left.write('↳')
@@ -73,7 +71,6 @@ def showKadiImport():
             else:
                 recordID = ''
                 
-            #submit = st.button('Get data from record', type='primary', disabled=(not sst.userLoggedIn))
             if st.button('Get data from record', type='primary', disabled=(not sst.userLoggedIn)):
                 sst.recordID = recordID
                 sst.recordName = sst.userRecords[int(recordID)]
@@ -91,7 +88,7 @@ def showGufImport():
             kadiGetGroupRecords()
         
         st.write('1. Please select your record:')
-        selectedRecord = st.selectbox('selectKadiRecordByName', sorted(sst.userRecords.values()), format_func=lambda x: "@" + str(x), label_visibility='collapsed')
+        selectedRecord = st.selectbox('selectKadiRecordByName', sorted(sst.userRecords.values()), format_func=lambda x: "@" + str(x), label_visibility='collapsed', index=None, placeholder='')
         recordID = str({v: k for k, v in sst.userRecords.items()}.get(selectedRecord))
         left, right = st.columns((1, 20))
         left.write('↳')

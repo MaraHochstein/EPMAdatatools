@@ -8,7 +8,9 @@ import utils.func as fn
 from pandas.api.types import (is_datetime64_any_dtype, is_numeric_dtype) # for dataframe_explorer
 
 import matplotlib.pyplot as plt # for element maps (plotting)
+import matplotlib.patches as patches
 import matplotlib.cm as cm # for element maps (colors)
+from matplotlib import colors # for histogram
 import seaborn as sns # for element maps (heatmap)
 
 #page config
@@ -27,9 +29,16 @@ fn.refreshOauthToken()
 fn.loadCSS()
 
 
+
 #########################
 # display functions
 #########################
+
+# reset mapEdit if filter settings change
+def resetMapEdit():
+    sst.mapEdit = ''
+
+
 # dataframe filter - based on module streamlit_extras.dataframe_explorer (https://github.com/arnaudmiribel/streamlit-extras/blob/main/src/streamlit_extras/dataframe_explorer/__init__.py)
 def dataframe_explorer(df: pd.DataFrame, case: bool = True) -> pd.DataFrame: # if case = True: text inputs are case sensitive    
     # sync with session_state variables
@@ -102,15 +111,17 @@ def dataframe_explorer(df: pd.DataFrame, case: bool = True) -> pd.DataFrame: # i
 def filterMaps(mapData, selectedElements=None, selectedTransition=None, selectedSet=None, selectedType=None):
     filteredMaps = {}
     for key, val in mapData.items():
-        if (len(selectedElements) == 0 or val['element'] in selectedElements) and \
-         (len(selectedTransition) == 0 or val['characteristicLine'] in selectedTransition) and \
-         (len(selectedSet) == 0 or val['set'] in selectedSet) and \
-         (len(selectedType) == 0 or val['type'] in selectedType): 
+        # exclude element & characteristic line for COMPO
+        if ('COMPO' in selectedType and val['type'] == 'COMPO') and (val['sample'] in selectedSet):
+            filteredMaps[key] = val
+        # WDS / EDS
+        if val['element'] in selectedElements and val['characteristicLine'] in selectedTransition and val['sample'] in selectedSet and val['type'] in selectedType: 
             filteredMaps[key] = val
     return filteredMaps
 
 
 # colorbar preview
+@st.cache_data(show_spinner=False)
 def displayColorbar(barName):
     # get colormap with barName
     colormap = plt.get_cmap(barName, 256)
@@ -128,31 +139,54 @@ def displayColorbar(barName):
     fig.savefig(buf, format='png')
     # show bar
     st.caption('Color bar preview: ' + barName + '')
-    st.image(buf, use_column_width='always', output_format='png')
-   
+    st.image(buf, use_container_width=True, output_format='png')
+ 
+ 
+# get map ranges
+def getRangeSelect(editMap):
+    # calculations for range slider & colorbar
+    rawValues = sst.mapData[editMap]['imgData'].values.flatten().tolist()
+    # calculations for display
+    dataMin = int(min(rawValues))
+    dataMax = int(max(rawValues))
+    dataMean = int(round(sum(rawValues)/len(rawValues),1))
+    dataStd = int(round(np.std(rawValues),1))
+    # range select
+    if editMap in sst.mapEditFilter['filterSettings']:
+        # get values from sst
+        rangeSelMin = int(sst.mapEditFilter['filterSettings'][editMap]['min'])
+        rangeSelMax = int(sst.mapEditFilter['filterSettings'][editMap]['max'])
+    else:   
+        # range select preset: mean +- 3 std dev (normal distribution) 
+        rangeSelMin = int(max(dataMean - (2*dataStd), (dataMin if dataMin > 0 else 0))) # sets 0 if smaller
+        
+        rangeSelMax = int(min(dataMean + (2*dataStd), dataMax)) # sets to dataMax if higher
+        
+    return dataMin, dataMax, dataMean, dataStd, rangeSelMin, rangeSelMax
+
+
+# get previous and next map name
+@st.cache_data(show_spinner=False)
+def getNextMap(currentMap):
+    # get current index of selected map +/- 1 (mod len(names) to ensure, that last entry is followed again before first etc.)
+    nextMap = list(filteredMaps.keys())[(list(filteredMaps.keys()).index(currentMap) + 1) % len(list(filteredMaps.keys()))]
+    return nextMap
+    
+@st.cache_data(show_spinner=False)                
+def getPrevMap(currentMap):
+    prevMap = list(filteredMaps.keys())[(list(filteredMaps.keys()).index(currentMap) - 1) % len(list(filteredMaps.keys()))]
+    return prevMap
+
    
 # plot heatmap for selected map
-def plotElementMap(selectedMap):
-    # calculations for display
-    dataMin = pd.DataFrame(sst.mapData[selectedMap]['imgData']).min().min()
-    dataMax = pd.DataFrame(sst.mapData[selectedMap]['imgData']).max().max()
-    # range select
-    # get median
-    dataMed = pd.DataFrame(sst.mapData[selectedMap]['imgData']).median().median()
-    #
-    if (dataMed - dataMin) < (dataMax - dataMed):
-        rangeSelMin = dataMin
-        rangeSelMax = dataMin + (2*dataMed)
-    else:
-        rangeSelMin = dataMax - (2*dataMed)
-        rangeSelMax = dataMax
+@st.cache_data(show_spinner=False)
+def plotElementMap(selectedMap, selectedCmap, rangeSelMin, rangeSelMax, mWidth=2.5, mHeight=1.5):
     # plot
-    plt.figure(figsize=(3, 2))
+    plt.figure(figsize=(mWidth, mHeight), dpi=600)
     heatMap = sns.heatmap(pd.DataFrame(sst.mapData[selectedMap]['imgData']), 
             annot = False, 
             cmap = selectedCmap, # selected color bar
             cbar = True,
-            cbar_kws={'label': sst.mapData[selectedMap]['element'] + ' cnt', 'location': 'right'},
             square = True,
             # set min & max to map values
             vmin = rangeSelMin,
@@ -162,20 +196,76 @@ def plotElementMap(selectedMap):
             yticklabels = False,
         )
         
-    plt.gca().collections[0].colorbar.ax.tick_params(labelsize=6)
+    plt.gca().collections[0].colorbar.ax.tick_params(labelsize=5) # numbers on colorbar
+    plt.gca().collections[0].colorbar.set_label(label= sst.mapData[selectedMap]['element'] + ' cnt', size=5, weight='bold') # label on colorbar
     
-    # show heatmap
-    st.write('**Map.: ' + str(sst.mapData[selectedMap]['set']) + ' | Element: ' + sst.mapData[selectedMap]['element'] + ' | X-ray line: ' + sst.mapData[selectedMap]['characteristicLine'] + ' | Type: ' + sst.mapData[selectedMap]['type'] + '**')
+    # save plot as img-data in sst.mapImages
+    imgBuffer = io.BytesIO()
+    plt.savefig(imgBuffer, format='png', bbox_inches='tight')
+    imgBuffer.seek(0) # move cursor back to start of buffer
     
-    st.pyplot(plt, use_container_width = False)
+    sst.mapImages[selectedMap.replace('.csv','.png')] = imgBuffer.getvalue()
     plt.close()
     
-    st.write('Min: ' + str(dataMin) + ' | Max: ' + str(dataMax) + ' | Median: ' + str(dataMed))
+    # show plot
+    ## map infos
+    st.markdown('**Details for this ' + str(sst.mapData[selectedMap]['element']) + '-map of ' + str(sst.mapData[selectedMap]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[selectedMap]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[selectedMap]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(selectedMap.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(selectedMap.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
+    ## plot
+    st.image(sst.mapImages[selectedMap.replace('.csv','.png')], use_container_width=True) # use st.image instead of st.pyplot to avoid "MediaFileHandler: Missing file"-error
     
     
+   
+# plot histogram for selected map
+@st.cache_data(show_spinner=False)
+def plotMapHistogram(editMap, selectedCmap, rangeSelMin, rangeSelMax, noBins=200):            
+    # get selected colormap
+    cm = plt.get_cmap(selectedCmap)
+    # make copy of editMap to display
+    selectedMap = sst.mapData[editMap]['imgData'].values.flatten().tolist()
+    selectedMapFiltered = [x for x in selectedMap if rangeSelMin <= x <= rangeSelMax]
     
+    # fig
+    plt.figure(figsize=(3.5, 1))
     
+    # calculate histogram, not plotting yet
+    n, bins = np.histogram(selectedMapFiltered, bins=noBins)
     
+    # show std rectangle in background starting from mean-3*std or 0 to mean+3*std
+    rectStart = max(dataMean - 2*dataStd,0)
+    rectEnd = min((dataMean + 2*dataStd)-rectStart, dataMax)
+    stdRect = patches.Rectangle((rectStart, 0), rectEnd, max(n)*1.05, linewidth=0, edgecolor='r', facecolor='r', alpha=0.15, zorder=0) # std
+    plt.gca().add_patch(stdRect)
+    
+    # plot histogram
+    n, bins, patchesList = plt.gca().hist(selectedMapFiltered, bins=noBins, align='mid', zorder=1)
+    
+    # set color for bins
+    binCenters = 0.5 * (bins[:-1] + bins[1:])
+    col = binCenters - min(binCenters)
+    col /= max(col)
+    for c, p in zip(col, patchesList):
+        plt.setp(p, 'facecolor', cm(c))
+    
+    # remove outline 
+    for s in ['top', 'bottom', 'left', 'right']:
+        plt.gca().spines[s].set(linewidth=0)
+
+    # adjust ticks & labels
+    plt.xlabel(sst.mapData[editMap]['element'] + ' cnt', fontsize=5, weight='bold')
+    plt.xticks(fontsize=5)
+    plt.yticks([])
+    
+    # insert lines to indicate current ranges
+    plt.axvline(x=dataMean, color='r', linestyle='--', linewidth=1) # mean
+    
+    # clip x axis to desired window
+    plt.gca().set_xlim(rangeSelMin, rangeSelMax)
+    
+    # show
+    st.pyplot(plt, use_container_width = False)
+    plt.close()   
+  
+
 #########################
 # sidebar
 #########################
@@ -190,7 +280,7 @@ st.title('Data Viewer', anchor=False)
 if not sst.kadiLoaded:
     st.info('Please import your EPMA data in **' + fn.pageNames['import']['name'] + '** in the sidebar menu.', icon=fn.pageNames['import']['ico'])
 else:
-    tab1, tab2, tab3, tab4 = st.tabs([':magic_wand: Data Filter', ':frame_with_picture: Images', ':notebook: Method Section', ':world_map: Element Maps'])
+    tab1, tab2, tab3, tab4 = st.tabs([':material/filter_alt: Data Filter', ':material/photo_library: Images', ':material/stylus_note: Method Section', ':material/blur_on: Element Maps'])
 
     with tab1:
         ################
@@ -198,7 +288,7 @@ else:
         ################
         if not sst.csvMerged.empty:
             st.write('The table below shows the :red[merged data] from your imported raw data. Here you can filter data which should not be used for further processing.')
-            # select presets
+            # load presets from kadi
             st.write('Reload a previously saved filter setting from Kadi4Mat:')
             left, right = st.columns((5,1))
             with left:
@@ -212,7 +302,7 @@ else:
                             )
             with right:
                 st.write()
-                if st.button('Load this setting', type='secondary', disabled=(sst.kadiFilter == {})):
+                if st.button('Load this setting', type='secondary', disabled=(sst.kadiFilter == {}), key="loadDataFilter"):
                     presetSelected = selectBox
                 else:
                     presetSelected = None
@@ -220,13 +310,17 @@ else:
             # get preset filter if chosen and write to current filter settings
             if presetSelected != None:
                 sst.dataViewerFilter = sst.kadiFilter[presetSelected]
-                
+            
+            # show info if duplicates have been renamed
+            if sst.csvMerged['Sample Name'].str.contains('_dupl', na=False).any():
+                st.warning('Some Sample Names have been renamed to merge the raw data files. You can filter these samples by the *_dupl*-suffix in the *Sample Name* column below.', icon=':material/info:')
+            
             sst.csvMergedFiltered = dataframe_explorer(sst.csvMerged, case=False)
-            st.subheader('Filtered data from _@' + sst.recordName + '_ (' + str(len(sst.csvMergedFiltered.index)) + '/' + str(len(sst.csvMerged.index)) + ' entries filtered)' if sst.userType != 'demo' else 'Filtered data from _Quantitative Demo Dataset_ (' + str(len(sst.csvMergedFiltered.index)) + '/' + str(len(sst.csvMerged.index)) + ' entries filtered)', anchor=False)
+            st.subheader('Filtered data (' + str(len(sst.csvMergedFiltered.index)) + '/' + str(len(sst.csvMerged.index)) + ' entries filtered)' if sst.userType != 'demo' else 'Filtered data from _Quantitative Demo Dataset_ (' + str(len(sst.csvMergedFiltered.index)) + '/' + str(len(sst.csvMerged.index)) + ' entries filtered)', anchor=False)
             sst.csvMergedFiltered
             st.info('Check out **' + fn.pageNames['export']['name'] + '** if you want to download this filtered dataset or upload the filter settings to Kadi4Mat.', icon=fn.pageNames['export']['ico'])
         else:
-            st.info('This record contains no measurement files.')
+            st.info('This record contains no measurement files.', icon=':material/visibility_off:')
         
 
     with tab2:
@@ -234,157 +328,391 @@ else:
         # Images
         ################
         if len(sst.imageData) > 0:
-            st.subheader(str(len(sst.imageData)) + ' Images saved in _@' + sst.recordName + '_' if sst.userType != 'demo' else str(len(sst.imageData)) + ' Images saved in _Quantitative Demo Dataset_', anchor=False)            
+            st.subheader(str(len(sst.imageData)) + ' Images saved', anchor=False)            
             #get no of img & split in groups of 4    
             imageDataSplitted = [sst.imageData[i:i+4] for i in range(0, len(sst.imageData), 4)]
             for row in imageDataSplitted:
                 col1, col2, col3, col4 = st.columns(4,gap='large')
                 for i, (imageId, imgData) in enumerate(row):
                     if i == 0:
-                        col1.image(imgData, caption=sst.imageFiles[imageId], use_column_width='always')
+                        col1.image(imgData, caption=sst.imageFiles[imageId], use_container_width=True)
                     elif i == 1:
-                        col2.image(imgData, caption=sst.imageFiles[imageId], use_column_width='always')
+                        col2.image(imgData, caption=sst.imageFiles[imageId], use_container_width=True)
                     elif i == 2:
-                        col3.image(imgData, caption=sst.imageFiles[imageId], use_column_width='always')
+                        col3.image(imgData, caption=sst.imageFiles[imageId], use_container_width=True)
                     else:
-                        col4.image(imgData, caption=sst.imageFiles[imageId], use_column_width='always')
+                        col4.image(imgData, caption=sst.imageFiles[imageId], use_container_width=True)
             st.info('Check out **' + fn.pageNames['export']['name'] + '** if you want to download the images (*.jpg, *.tif) as zip-archive', icon=fn.pageNames['export']['ico'])
         else:
-            st.info('This record contains no image data.')
+            st.info('This record contains no image data.', icon=':material/visibility_off:')
 
     with tab3:
         ################
         # Methods
         ################
         # different tabs for different datatypes
-        if sst.shortMeasCond != {}:
-            tab3a, tab3b, tab3c = st.tabs(['Metadata', 'Measurement Conditions', 'Method Writeup'])
-                
-            with tab3a:
-                st.subheader('Kadi Metadata', anchor=False)
-                st.table(sst.kadiMetaData)
-            
-            with tab3b:
-                tab3b1, tab3b2 = st.tabs(['Compact','Full']) 
-                
-                with tab3b1:
-                    st.subheader('Measurement Conditions for _@' + sst.recordName + '_' if sst.userType != 'demo' else 'Measurement Conditions for _Quantitative Demo Dataset_', anchor=False)
-                    left, right = st.columns((1,1))
-                    with left:
-                        
-                        st.table(sst.shortMeasCond[0])
-                        
-                    
-                    st.dataframe(sst.shortMeasCond[1], hide_index=1, use_container_width=1)
-                    
-                with tab3b2:
-                    st.subheader('General Information', anchor=False)
-                    st.table(sst.methodGeneralData)
-                    
-                    st.subheader('Measurement Conditions', anchor=False)
-                    st.table(sst.methodSampleData)
-                    
-                    st.subheader('Standard Data', anchor=False)
-                    st.table(sst.methodStdData)
-            
-            with tab3c:
-                if sst.condInfos != {}:
-                    if 'Quantitative Analysis' in sst.condInfos[1][1]:
-                        st.subheader('Standard Condition Writeup for _@' + sst.recordName + '_' if sst.userType != 'demo' else 'Standard Condition Writeup for _Quantitative Demo Dataset_', anchor=False)
-                
-                        # find values in text
-                        mesTimes = sst.condSamples[11][1]
-                        mins=[]
-                        maxs=[]
-                        for res in mesTimes:
-                            mins.append(min(res.split()))
-                            maxs.append(max(res.split()))    
-                        
-                        string = 'Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to <span style="color:#FF4B62">' + str(sst.condInfos[5][1]) + ' kV</span> with a beam current of <span style="color:#FF4B62">' + str(sst.condInfos[6][1]) + ' nA</span>. '\
-                                    'The following elements were measured: <span style="color:#FF4B62">' + ', '.join(sst.condElements[1]) + '</span>. The spot analyses were performed with a focused beam of <span style="color:#FF4B62">' + str(sst.shortMeasCond[0].loc['Spotsizes used (μm)'].values[0]) + ' µm</span> diameter. Peak measurement times were between <span style="color:#FF4B62">' + str(min(mins)) + '</span> and <span style="color:#FF4B62">' + str(max(maxs)) + ' s</span>, and backgrounds were measured with '\
-                                    '<span style="color:#FF4B62">half</span> peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in <span style="color:#FF4B62">' + sst.condInfos[8][1] + '</span> correction was applied (RR). The standards were calibrated to <1 rel%. '
-                        st.markdown(string, unsafe_allow_html=True)
-                        # download text
-                        st.download_button('Download text as .txt-file', 'Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to ' + str(sst.condInfos[5][1]) + ' kV with a beam current of ' + str(sst.condInfos[6][1]) + ' nA. '\
-                                            'The following elements were measured: ' + ', '.join(sst.condElements[1]) + '. The spot analyses were performed with a focused beam of ' + str(sst.shortMeasCond[0].loc["Spotsizes used (μm)"].values[0]) + ' µm diameter. Peak measurement times were between ' + str(min(mins)) + ' and ' + str(max(maxs)) + ' s, and backgrounds were measured with '\
-                                            'half peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in ' + sst.condInfos[8][1] + ' correction was applied (RR). The standards were calibrated to <1 rel%. '
-                                            , file_name='standard-condition-writeup.txt', mime='text/plain'
-                                          )
-                        st.divider()
-                        st.subheader('References', anchor=False)
-                        st.markdown('Pouchou, J.-L. & Pichoir, F. (1991): https://doi.org/10.1007/978-1-4899-2617-3_4')
-                    
-                # Flank Method
-                #with tab3c2:
-                #    st.write('The atomic $Fe^{3+}/Fe_{tot}$ proportions in garnets were determined with the flank method as developed and refined by Höfer et al. (1994) and Höfer and Brey (2007). Measurements were conducted with a JEOL'\
-                #                'JXA-8530F Plus electron microprobe at the Institute für Geowissenschaften, GU Frankfurt am Main. The flank method and the quantitative elemental analyses were simultaneously conducted using WDS at 15 kV and 120 nA, with '\
-                #                'a beam diameter of 1 μm. Two spectrometers with TAPL crystals for high intensities and the smallest detector slit (300 μm) were used, with 100 s counting time for $FeL_{α}$ and $FeL_{β}$. The $Fe^{3+}/Fe_{tot}$ of garnets were '\
-                #                'determined by applying the correction for self-absorption using natural and synthetic garnets with variable total $Fe$ and $Fe^{3+}/Fe_{tot}$ known from Mössbauer ›milliprobe‹ (Höfer and Brey, 2007). The remaining 3 '\
-                #                'spectrometers carried out the simultaneous elemental analyses of $Si$, $Ti$, $Al$, $Cr$, $Fe$, $Mn$, $Ni$, $Mg$, $Ca$, $Na$, $K$ and $P$. Appropriate silicates (pyrope ($Mg$, $Al$, $Si$), albite ($Na$), $CaSiO_{3}$ ($Ca$)), phosphate ($KTiOPO_{4}$ ($Ti$, $K$, $P$)), '\
-                #                'and metals or metal oxides (iron metal ($Fe$), $NiO$ ($Ni$), $MnTiO_{3}$ ($Mn$), $Cr_{2}O_{3}$ ($Cr$)) were used as standards, and a PRZ routine was used for the matrix correction. The uncertainty in $Fe^{3+}/Fe_{tot}$ analyses is about ± '\
-                #                '0.01 (1σ), while garnets with higher $FeO$ have smaller errors than garnets with lower $FeO$.')
-                #    st.divider()
-                #    st.subheader('References', anchor=False)
-                #    st.markdown('Höfer et al. (1994): https://doi.org/10.1127/ejm/6/3/0407')
-                #    st.markdown('Höfer & Brey (2007): https://doi.org/10.2138/am.2007.2390')
+        tab3a, tab3b, tab3c, tab3d = st.tabs([':material/labs: Quantitative Conditions', ':material/blur_on: Map Conditions', ':material/database: Kadi Metadata', ':material/stylus_note: Method Writeup'])
         
-        else:
+        # Quantitative Conditions
+        with tab3a: 
+            st.subheader('Quantitative Measurement Conditions', anchor=False)
+            
+            if sst.shortMeasCond == {} and sst.standardsXlsx == {} and sst.methodGeneralData.empty and sst.methodSampleData.empty and sst.methodStdData.empty:
+                st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
+            else:
+                tab3a1, tab3a2, tab3a3 = st.tabs([':material/compress: Compact Conditions', ':material/labs: Standard Details', ':material/expand: Full Conditions']) 
+                
+                # Compact
+                with tab3a1: 
+                    st.subheader('Compact Measurement Conditions', anchor=False)
+                    if sst.shortMeasCond == {}:
+                        st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
+                    else:
+                        left, right = st.columns((1,1))
+                        with left:
+                            st.table(sst.shortMeasCond[0])
+                        st.dataframe(sst.shortMeasCond[1], hide_index=1, use_container_width=1)
+                
+                # Standards.xlsx
+                with tab3a2:                    
+                    if sst.standardsXlsx == {}:
+                        st.info('No standard data found in this record.', icon=':material/visibility_off:')
+                    else:
+                        for sheet in sst.standardsXlsx:
+                            st.subheader('Standard Details (' + str(sheet) + ')', anchor=False)
+                            st.dataframe(sst.standardsXlsx[sheet], use_container_width=1)
+                        
+                # Full    
+                with tab3a3:
+                    st.subheader('Full Measurement Conditions', anchor=False)
+                    if sst.methodGeneralData.empty or sst.methodSampleData.empty or sst.methodStdData.empty:
+                        st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
+                    else:
+                        st.subheader('General Information', anchor=False)
+                        st.table(sst.methodGeneralData)
+                        
+                        st.subheader('Measurement Conditions', anchor=False)
+                        st.table(sst.methodSampleData)
+                        
+                        st.subheader('Standard Data', anchor=False)
+                        st.table(sst.methodStdData)
+        
+        # Map Conditions
+        with tab3b: 
+            st.subheader('Map Measurement Conditions', anchor=False)
+            
+            if sst.mapGeneralData == {}:
+                st.info('No map measurement conditions found in this record.', icon=':material/visibility_off:')
+            else:
+                # create one tab for each map sample
+                mapTabNames = [':material/blur_on: ' + name.lstrip('map ') for name in sst.mapGeneralData.keys()]
+                mapTabs = st.tabs(mapTabNames)
+                
+                for mapTabName, mapTab in zip(mapTabNames, mapTabs):
+                    with mapTab:
+                        mapNameJson = 'map ' + mapTabName.lstrip(':material/blur_on: ')
+                        
+                        # General Parameters
+                        if mapNameJson in sst.mapGeneralData:
+                            st.subheader('General Parameters')
+                            st.table(sst.mapGeneralData[mapNameJson])
+                        
+                        # WDS measurements
+                        if mapNameJson in sst.mapWdsData:
+                            st.subheader('WDS Measurement Conditions')
+                            st.table(sst.mapWdsData[mapNameJson])
+                           
+                        # EDS measurements
+                        if mapNameJson in sst.mapEdsData:
+                            st.subheader('EDS Measurement Conditions')
+                            st.table(sst.mapEdsData[mapNameJson])
+        
+        # Kadi Metadata    
+        with tab3c:
             st.subheader('Kadi Metadata', anchor=False)
             st.table(sst.kadiMetaData)
+        
+        # Method Writeup
+        with tab3d: 
+            if sst.condInfos != {}:
+                if 'Quantitative Analysis' in sst.condInfos[1][1]:
+                    st.subheader('Standard Condition Writeup', anchor=False)
+            
+                    # find values in text
+                    mesTimes = sst.condSamples[11][1]
+                    mins=[]
+                    maxs=[]
+                    for res in mesTimes:
+                        mins.append(min(res.split()))
+                        maxs.append(max(res.split()))    
+                    
+                    string = 'Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to <span style="color:#FF4B62">' + str(sst.condInfos[5][1]) + ' kV</span> with a beam current of <span style="color:#FF4B62">' + str(sst.condInfos[6][1]) + ' nA</span>. '\
+                                'The following elements were measured: <span style="color:#FF4B62">' + ', '.join(sst.condElements[1]) + '</span>. The spot analyses were performed with a focused beam of <span style="color:#FF4B62">' + str(sst.shortMeasCond[0].loc['Spotsizes used (μm)'].values[0]) + ' µm</span> diameter. Peak measurement times were between <span style="color:#FF4B62">' + str(min(mins)) + '</span> and <span style="color:#FF4B62">' + str(max(maxs)) + ' s</span>, and backgrounds were measured with '\
+                                '<span style="color:#FF4B62">half</span> peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in <span style="color:#FF4B62">' + sst.condInfos[8][1] + '</span> correction was applied (RR). The standards were calibrated to <1 rel%. '
+                    st.markdown(string, unsafe_allow_html=True)
+                    # download text
+                    st.download_button('Download text as .txt-file', 'Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to ' + str(sst.condInfos[5][1]) + ' kV with a beam current of ' + str(sst.condInfos[6][1]) + ' nA. '\
+                                        'The following elements were measured: ' + ', '.join(sst.condElements[1]) + '. The spot analyses were performed with a focused beam of ' + str(sst.shortMeasCond[0].loc["Spotsizes used (μm)"].values[0]) + ' µm diameter. Peak measurement times were between ' + str(min(mins)) + ' and ' + str(max(maxs)) + ' s, and backgrounds were measured with '\
+                                        'half peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in ' + sst.condInfos[8][1] + ' correction was applied (RR). The standards were calibrated to <1 rel%. '
+                                        , file_name='standard-condition-writeup.txt', mime='text/plain'
+                                      )
+                    st.divider()
+                    st.subheader('References', anchor=False)
+                    st.markdown('Pouchou, J.-L. & Pichoir, F. (1991): https://doi.org/10.1007/978-1-4899-2617-3_4')
+            else:
+                st.info('Standard Condition Writeup could not be generated for this record.', icon=':material/visibility_off:')
+                
+            # Flank Method
+            #with tab3d2:
+            #    st.write('The atomic $Fe^{3+}/Fe_{tot}$ proportions in garnets were determined with the flank method as developed and refined by Höfer et al. (1994) and Höfer and Brey (2007). Measurements were conducted with a JEOL'\
+            #                'JXA-8530F Plus electron microprobe at the Institute für Geowissenschaften, GU Frankfurt am Main. The flank method and the quantitative elemental analyses were simultaneously conducted using WDS at 15 kV and 120 nA, with '\
+            #                'a beam diameter of 1 μm. Two spectrometers with TAPL crystals for high intensities and the smallest detector slit (300 μm) were used, with 100 s counting time for $FeL_{α}$ and $FeL_{β}$. The $Fe^{3+}/Fe_{tot}$ of garnets were '\
+            #                'determined by applying the correction for self-absorption using natural and synthetic garnets with variable total $Fe$ and $Fe^{3+}/Fe_{tot}$ known from Mössbauer ›milliprobe‹ (Höfer and Brey, 2007). The remaining 3 '\
+            #                'spectrometers carried out the simultaneous elemental analyses of $Si$, $Ti$, $Al$, $Cr$, $Fe$, $Mn$, $Ni$, $Mg$, $Ca$, $Na$, $K$ and $P$. Appropriate silicates (pyrope ($Mg$, $Al$, $Si$), albite ($Na$), $CaSiO_{3}$ ($Ca$)), phosphate ($KTiOPO_{4}$ ($Ti$, $K$, $P$)), '\
+            #                'and metals or metal oxides (iron metal ($Fe$), $NiO$ ($Ni$), $MnTiO_{3}$ ($Mn$), $Cr_{2}O_{3}$ ($Cr$)) were used as standards, and a PRZ routine was used for the matrix correction. The uncertainty in $Fe^{3+}/Fe_{tot}$ analyses is about ± '\
+            #                '0.01 (1σ), while garnets with higher $FeO$ have smaller errors than garnets with lower $FeO$.')
+            #    st.divider()
+            #    st.subheader('References', anchor=False)
+            #    st.markdown('Höfer et al. (1994): https://doi.org/10.1127/ejm/6/3/0407')
+            #    st.markdown('Höfer & Brey (2007): https://doi.org/10.2138/am.2007.2390')
             
     with tab4:
         ################
         # Element Maps
         ################
         if sst.mapData != {}:
-            st.subheader('Filter Element Maps', anchor=False)
-            # select element
-            selectedElements = st.multiselect('Measured Elements:',({val['element'] for val in sst.mapData.values()}), default=({val['element'] for val in sst.mapData.values()}), placeholder='Select elements you want to display', label_visibility='visible')
-            # select x-ray transition line
-            selectedTransition = st.multiselect('Measured characteristic X-ray transition lines:', ({val['characteristicLine'] for val in sst.mapData.values()}), default=({val['characteristicLine'] for val in sst.mapData.values()}), placeholder='Select the measured characteristic X-ray transition line', label_visibility='visible')
-            # select map set (position)
-            selectedSet = st.multiselect('Map set (same set ⇨ same position):', ({val['set'] for val in sst.mapData.values()}), default=min({val['set'] for val in sst.mapData.values()}), placeholder='Select a map set (same set ⇨ same position)', label_visibility='visible')
-            # select WDS / EDS
-            selectedType = st.multiselect('Measurement type:',({val['type'] for val in sst.mapData.values()}), default=({val['type'] for val in sst.mapData.values()}), placeholder='Select the measurement type', label_visibility='visible')
-            # select color
-            left, right = st.columns((8,2))
+            st.subheader('Filter Element Maps', anchor=False)            
+            
+            # load map presets from kadi
+            #############################
+            st.write('Reload previously saved map settings from Kadi4Mat:')
+            left, right = st.columns((5,1))
             with left:
-                selectedCmap = st.selectbox('Chosse a color palette', ('viridis', 'flare', 'mako', 'rocket', 'crest', 'magma', 'Spectral'), label_visibility='visible')
+                selectBox = st.selectbox('Reload saved map settings from Kadi4Mat',
+                                [dateStr for dateStr in sst.mapFilter], 
+                                format_func = lambda x: (datetime.datetime.strptime(x, '%Y-%m-%d_%H-%M-%S').strftime('Settings from %d.%m.%Y %H:%M:%S')),
+                                index = None,
+                                placeholder = ('There are no map settings saved for this record. Please adjust your desired map settings below.' if (sst.mapFilter == {}) else 'Choose a preset and click the button on the right to apply.'),
+                                label_visibility = 'collapsed',
+                                disabled = (sst.mapFilter == {}),
+                            )
+            with right:
+                st.write()
+                if st.button('Load this setting', type='secondary', disabled=(sst.mapFilter == {}), key="loadMapSetting"):
+                    presetSelected = selectBox
+                else:
+                    presetSelected = None
+            
+            # get preset filter if chosen and write to current filter settings
+            if presetSelected != None:
+                sst.mapEditFilter = sst.mapFilter[presetSelected]
+            # preset if no map filter is loaded
+            if sst.mapEditFilter == {}:
+                sst.mapEditFilter = {'filterSettings': dict(), 'updateTime': ''}
+
+            # user filter maps
+            ###################   
+            with st.expander('Filter Element Maps to display', icon=':material/filter_alt:', expanded=True):
+                # select map set (sample)
+                selectedSet = st.segmented_control('Sample:', sorted({val['sample'] for val in sst.mapData.values()}), default=sorted({val['sample'] for val in sst.mapData.values()}, reverse=True)[0], help='Select a sample position', label_visibility='visible', selection_mode='single', on_change=resetMapEdit)
+                
+                # select WDS / EDS / COMPO
+                selectedType = st.pills('Measurement type:', sorted({val['type'] for val in sst.mapData.values()}, reverse=True), default=sorted({val['type'] for val in sst.mapData.values()}, reverse=True)[0], help='Select one or multiple measurement types', label_visibility='visible', selection_mode='multi', on_change=resetMapEdit)
+                
+                # deselect elements & characteristic line if type is COMPO
+                if (len(selectedType) == 1 and selectedType[0] == 'COMPO'):
+                    # select element
+                    selectedElements = st.pills('Measured Elements:', sorted({val['element'] for val in sst.mapData.values() if val['element'] != ''}), default=None, help='Select one or multiple elements you want to display', label_visibility='visible', selection_mode='multi', on_change=resetMapEdit)
+                    
+                    # select x-ray transition line
+                    selectedTransition = st.pills('Measured characteristic X-ray transition lines:', sorted({val['characteristicLine'] for val in sst.mapData.values() if val['characteristicLine'] != ''}), default=None, help='Select one or multiple measured characteristic X-ray transition lines', label_visibility='visible', selection_mode='multi', on_change=resetMapEdit)
+                else:
+                    # select element
+                    selectedElements = st.pills('Measured Elements:', sorted({val['element'] for val in sst.mapData.values() if val['element'] != ''}), default=sorted({val['element'] for val in sst.mapData.values() if val['element'] != ''}), help='Select one or multiple elements you want to display', label_visibility='visible', selection_mode='multi', on_change=resetMapEdit)
+                    
+                    # select x-ray transition line
+                    selectedTransition = st.pills('Measured characteristic X-ray transition lines:', sorted({val['characteristicLine'] for val in sst.mapData.values() if val['characteristicLine'] != ''}), default=sorted({val['characteristicLine'] for val in sst.mapData.values() if val['characteristicLine'] != ''})[0], help='Select one or multiple measured characteristic X-ray transition lines', label_visibility='visible', selection_mode='multi', on_change=resetMapEdit)
+                    
+            # filter maps by selected values
+            filteredMaps = filterMaps(sst.mapData, selectedElements, selectedTransition, selectedSet, selectedType)
+            
+            # user colorbar
+            ################
+            # select color
+            left, mid, right = st.columns((6,2,2))
+            with left:
+                cmapList = ['viridis', 'flare', 'mako', 'rocket', 'crest', 'magma', 'Spectral', 'Greys']
+                # get colorpreset from filter settings
+                if sst.mapEditFilter != {}:
+                    if 'cmap' in sst.mapEditFilter['filterSettings']:
+                        cmapCopy = sst.mapEditFilter['filterSettings']['cmap'].replace('_r','') # if reversed colorbar, don't use here
+                        cmapIndex = cmapList.index(cmapCopy)
+                    else:
+                        cmapIndex = 0
+                else:
+                        cmapIndex = 0
+                # colormap select
+                selectedCmap = st.selectbox('Chosse a color palette', (cmapList), label_visibility='visible', index=cmapIndex)
+                
+            with mid:
+                # toggle color reverse
+                fn.addLines(2)
+                if 'cmap' in sst.mapEditFilter['filterSettings']:
+                    # toggle true if loaded preset has reversed cbar saved
+                    if st.toggle('Reverse colorbar', value=(1 if '_r' in sst.mapEditFilter['filterSettings']['cmap'] else 0)):
+                        selectedCmap = selectedCmap + '_r'
+                    else:
+                        selectedCmap = selectedCmap
+                else:
+                    # if no preset loaded
+                    if st.toggle('Reverse colorbar'):
+                        selectedCmap = selectedCmap + '_r'
+                    else:
+                        selectedCmap = selectedCmap
+            
             with right:
                 # preview for colorbar
                 displayColorbar(selectedCmap)
-
-            st.subheader('Element Maps for selected settings', anchor=False)
             
-            # filter maps by selected values
-            filteredMaps = filterMaps(sst.mapData, selectedElements, selectedTransition, selectedSet, selectedType)
+            # save cmap in sst filterSettings
+            sst.mapEditFilter['filterSettings']['cmap'] = selectedCmap
+            sst.mapEditFilter['updateTime'] = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+            
+            # user edit map settings
+            #########################
+            # get map
+            if sst.mapEdit == '':
+                if len(filteredMaps.keys()) == 0:
+                    sst.mapEdit = ''
+                else:
+                    sst.mapEdit = list(filteredMaps.keys())[0]
+            
+            # show settings expander
+            with st.expander('Adjust individual maps settings', expanded=True, icon=':material/instant_mix:'):
+                # if one map is selected
+                if sst.mapEdit != '':
+                    # preset layout (buttons before container content! -> container gets updated correctly)
+                    prv, left, mid, right, nxt = st.columns((0.25,3,0.25,3,0.25))
+                    ## previous map button
+                    with prv:
+                        fn.addLines(14)
+                        if st.button('🠈'):
+                            sst.mapEdit = getPrevMap(sst.mapEdit)  
+                    ## histogram
+                    with left:
+                        histogramContainer = st.container(border=False)
+                    ## big map preview
+                    with right:
+                        previewContainer = st.container(border=False)
+                    ## next map button
+                    with nxt:
+                        fn.addLines(14)
+                        if st.button('🠊'):
+                            sst.mapEdit = getNextMap(sst.mapEdit)
+                    
+                    # get range values
+                    dataMin, dataMax, dataMean, dataStd, rangeSelMin, rangeSelMax = getRangeSelect(sst.mapEdit)
 
+                    # histogram
+                    with histogramContainer:
+                        st.subheader('Histogram settings', anchor=False)
+                        st.write('Adjust the lower and upper limits of element cnt to display:')
+       
+                        left2, mid2, right2 = st.columns((1,1,1))
+                        with left2:                        
+                            lowerInput = st.number_input('Lower limit:', min_value=dataMin, max_value=dataMax, value=rangeSelMin, step=1, placeholder='lower limit', label_visibility='visible')
+                        with mid2:
+                            upperInput = st.number_input('Upper limit:', min_value=dataMin, max_value=dataMax, value=rangeSelMax, step=1, placeholder='upper limit', label_visibility='visible')
+                        with right2:
+                            binInput = st.number_input('Number of histogram bins:', min_value=40, max_value=300, value=100, step=20, placeholder='bins', label_visibility='visible')
+                        # switch lower & upper if lower > upper
+                        if lowerInput > upperInput:
+                            lowerInputNew = upperInput
+                            upperInputNew = lowerInput
+                            lowerInput = lowerInputNew
+                            upperInput = upperInputNew
+                            
+                        # save changes in histogramsettings in sst
+                        if lowerInput != rangeSelMin or upperInput != rangeSelMax or binInput != 100:
+                            if sst.mapEdit in sst.mapEditFilter['filterSettings']:
+                                sst.mapEditFilter['filterSettings'][sst.mapEdit]['min'] = lowerInput
+                                sst.mapEditFilter['filterSettings'][sst.mapEdit]['max'] = upperInput
+                                sst.mapEditFilter['filterSettings'][sst.mapEdit]['bins'] = binInput
+                                sst.mapEditFilter['updateTime'] = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+                            else:
+                                sst.mapEditFilter['filterSettings'][sst.mapEdit] = {'min': lowerInput, 'max': upperInput, 'bins': binInput}
+                                sst.mapEditFilter['updateTime'] = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+                        
+                        # show histogram
+                        tab1, tab2 = st.tabs(['selected range', 'whole data']) # show two different histogram variants
+                        with tab1:
+                            if sst.mapEdit in sst.mapEditFilter['filterSettings']:
+                                plotMapHistogram(sst.mapEdit, selectedCmap, sst.mapEditFilter['filterSettings'][sst.mapEdit]['min'], sst.mapEditFilter['filterSettings'][sst.mapEdit]['max'], binInput)
+                            else:
+                                plotMapHistogram(sst.mapEdit, selectedCmap, rangeSelMin, rangeSelMax, binInput)
+                        with tab2:
+                            plotMapHistogram(sst.mapEdit, selectedCmap, dataMin, dataMax, binInput)
+                            
+                        st.write('red dashed line = data mean | red box = data mean ± 2 ∗ σ')
+
+                    # map preview
+                    with previewContainer:
+                        st.subheader('Preview', anchor=False)
+                        # show map preview
+                        if sst.mapEdit in sst.mapEditFilter['filterSettings']:
+                            plotElementMap(sst.mapEdit, selectedCmap, sst.mapEditFilter['filterSettings'][sst.mapEdit]['min'], sst.mapEditFilter['filterSettings'][sst.mapEdit]['max'], mWidth=5, mHeight=2)
+                        else:
+                            plotElementMap(sst.mapEdit, selectedCmap, rangeSelMin, rangeSelMax,  mWidth=5, mHeight=2)
+                        
+                        st.write('Min: ' + str(dataMin) + ' | Max: ' + str(dataMax) + ' | Mean: ' + str(dataMean) + ' | Std. dev.: ' + str(dataStd))
+                else:
+                    st.warning('No maps found for this filter settings. Please use other filter settings above.', icon=':material/remove_done:')
+
+            st.divider()
+            
+            st.info('Creation of Element Maps may take some time, this is indicated by the *RUNNING...* icon in the top right corner.', icon=':material/directions_run:')
+            
+
+            # show maps
+            ############
+            st.subheader('Filtered maps (' + str(len(filteredMaps)) + '/' + str(len(sst.mapData)) + ' maps filtered)' if sst.userType != 'demo' else 'Filtered maps (' + str(len(filteredMaps)) + '/' + str(len(sst.mapData)) + ' maps filtered)', anchor=False)
 
             # split maps in sets of 3 (for display columns)
             filteredMapNamesSplitted = [list(filteredMaps.keys())[i:i+3] for i in range(0, len(list(filteredMaps.keys())), 3)]
             
             for mapName in filteredMapNamesSplitted:
+                
+                # split in packs of 3
                 col1, col2, col3 = st.columns(3,gap='large')
                 for i, mapId in enumerate(mapName):
+                    if mapId in sst.mapEditFilter['filterSettings']:
+                        rSelMin = sst.mapEditFilter['filterSettings'][mapId]['min']
+                        rSelMax = sst.mapEditFilter['filterSettings'][mapId]['max']
+                    else:
+                        # get range values
+                        dMin, dMax, dMean, dStd, rSelMin, rSelMax = getRangeSelect(mapId)
                     if i == 0:
                         with col1:
-                            plotElementMap(mapId)
-                            
-                                
+                            plotElementMap(mapId, selectedCmap, rSelMin, rSelMax)
+                            if st.button('Edit this map', key='edit' + mapId):
+                                # select map as edit map
+                                sst.mapEdit = mapId
+                                st.rerun() # reload user settings expander
                     elif i == 1:
                         with col2:
-                            plotElementMap(mapId)
-                            
-                                
+                            plotElementMap(mapId, selectedCmap, rSelMin, rSelMax)
+                            if st.button('Edit this map', key='edit' + mapId):
+                                sst.mapEdit = mapId
+                                st.rerun()
                     else:
                         with col3:
-                            plotElementMap(mapId)
-                                                           
+                            plotElementMap(mapId, selectedCmap, rSelMin,rSelMax)
+                            if st.button('Edit this map', key='edit' + mapId):
+                                sst.mapEdit = mapId
+                                st.rerun()
                 st.divider()
             
             st.info('Check out **' + fn.pageNames['export']['name'] + '** if you want to download these map images (*.jpg, *.tif) as zip-archive or upload the map settings to Kadi4Mat.', icon=fn.pageNames['export']['ico'])
+
         else:
-            st.info('This record contains no element map data.')
-        
-     
-        
+            st.info('This record contains no element map data.', icon=':material/visibility_off:')
