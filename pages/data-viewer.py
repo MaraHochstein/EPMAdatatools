@@ -206,11 +206,7 @@ def plotElementMap(selectedMap, selectedCmap, rangeSelMin, rangeSelMax, mWidth=2
     
     sst.mapImages[selectedMap.replace('.csv','.png')] = imgBuffer.getvalue()
     plt.close()
-    
-    
-    
-    
-    
+   
    
 # plot histogram for selected map
 @st.cache_data(show_spinner=False)

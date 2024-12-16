@@ -203,7 +203,7 @@ def menuRedirect():
 # render sidebar & toast
 def renderSidebar(menuType):
     # no relative path because sidebar is rendered from different dir
-    st.logo('https://epmatools-beta.streamlit.app/~/+/app/static/transparent.png', icon_image='https://epmatools.streamlit.app/~/+/app/static/logo.png')
+    st.logo(st.secrets['oauthRedirectUri'] + '~/+/app/static/transparent.png', icon_image='https://epmatools.streamlit.app/~/+/app/static/logo.png')
     
     with st.sidebar:
         if sst.userType == 'demo':
@@ -322,7 +322,7 @@ def loadCSS():
     st.html(
     """
     <style>
-    .e1dl0tyv1, .e1dl0tyv0 {
+    .e1dl0tyv1, .e1dl0tyv0  {
         display: none;
     }
     </style>
