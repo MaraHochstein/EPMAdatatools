@@ -507,7 +507,7 @@ else:
             ###################   
             with st.expander('Filter Element Maps to display', icon=':material/filter_alt:', expanded=True):
                 # select map set (sample)
-                selectedSet = st.segmented_control('Sample:', sorted({val['sample'] for val in sst.mapData.values()}), default=sorted({val['sample'] for val in sst.mapData.values()}, reverse=True)[0], help='Select a sample position', label_visibility='visible', selection_mode='single', on_change=resetMapEdit)
+                selectedSet = st.segmented_control('Sample:', sorted({val['sample'] for val in sst.mapData.values()}), default=sorted({val['sample'] for val in sst.mapData.values()})[0], help='Select a sample position', label_visibility='visible', selection_mode='single', on_change=resetMapEdit)
                 
                 # select WDS / EDS / COMPO
                 selectedType = st.pills('Measurement type:', sorted({val['type'] for val in sst.mapData.values()}, reverse=True), default=sorted({val['type'] for val in sst.mapData.values()}, reverse=True)[0], help='Select one or multiple measurement types', label_visibility='visible', selection_mode='multi', on_change=resetMapEdit)
