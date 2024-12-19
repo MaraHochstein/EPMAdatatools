@@ -120,6 +120,19 @@ def filterMaps(mapData, selectedElements=None, selectedTransition=None, selected
     return filteredMaps
 
 
+# sort filtered maps by following order: sample name -> Element -> characteristic Line -> measurement type
+def sortFilteredMaps(selectedMap):
+    parts = selectedMap.split()
+    
+    # sort by own order (not for COMPO)
+    sampleName = parts[1]
+    elementName = parts[3] if len(parts) > 3 else '' 
+    characteristicLine = parts[4] if len(parts) > 4 else ''
+    measurementType = parts[2] if len(parts) > 2 else ''
+    
+    return (sampleName, elementName, characteristicLine, measurementType)
+
+
 # colorbar preview
 @st.cache_data(show_spinner=False)
 def displayColorbar(barName):
@@ -206,7 +219,7 @@ def plotElementMap(selectedMap, selectedCmap, rangeSelMin, rangeSelMax, mWidth=2
     
     sst.mapImages[selectedMap.replace('.csv','.png')] = imgBuffer.getvalue()
     plt.close()
-   
+     
    
 # plot histogram for selected map
 @st.cache_data(show_spinner=False)
@@ -679,9 +692,12 @@ else:
             # show maps
             ############
             st.subheader('Filtered maps (' + str(len(filteredMaps)) + '/' + str(len(sst.mapData)) + ' maps filtered)' if sst.userType != 'demo' else 'Filtered maps (' + str(len(filteredMaps)) + '/' + str(len(sst.mapData)) + ' maps filtered)', anchor=False)
-
+            
+            # sort maps for display
+            sortedFilteredMaps = sorted(filteredMaps.keys(), key=sortFilteredMaps)
+            
             # split maps in sets of 3 (for display columns)
-            filteredMapNamesSplitted = [list(filteredMaps.keys())[i:i+3] for i in range(0, len(list(filteredMaps.keys())), 3)]
+            filteredMapNamesSplitted = [list(sortedFilteredMaps)[i:i+3] for i in range(0, len(list(sortedFilteredMaps)), 3)]
             
             for mapName in filteredMapNamesSplitted:
                 
