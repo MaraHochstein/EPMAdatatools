@@ -506,7 +506,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - 3c1. json
                 #################################
                 
-                elif len(mapFiles) > 0 and len(mapJsons) > 0:
+                if len(mapFiles) > 0 and len(mapJsons) > 0:
                     
                     # 3c1. load map jsons
                     ####################################
@@ -735,7 +735,7 @@ def kadiLoadFiles(parentContainer = False):
                 # -> infos in json
                 ####################################################
                 
-                elif len(mapFiles) > 0 and len(mapJsonsData) > 0:
+                if len(mapFiles) > 0 and len(mapJsonsData) > 0:
                 
                     # 4b1. Map Conditions:
                     # - 4b11. "General Parameters" (mapJsonsData -> sst.mapGeneralData)
