@@ -695,7 +695,7 @@ else:
             
             # sort maps for display
             sortedFilteredMaps = sorted(filteredMaps.keys(), key=sortFilteredMaps)
-            
+            st.write(sortFilteredMaps)
             # split maps in sets of 3 (for display columns)
             filteredMapNamesSplitted = [list(sortedFilteredMaps)[i:i+3] for i in range(0, len(list(sortedFilteredMaps)), 3)]
             
