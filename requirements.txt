@@ -1,4 +1,3 @@
-streamlit == 1.40.0  # Version 1.36.0 seems to have a problem with bokeh
 requests
 xlsxwriter
 tifffile
