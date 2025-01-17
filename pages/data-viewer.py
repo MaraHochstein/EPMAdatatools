@@ -91,7 +91,7 @@ def dataframe_explorer(df: pd.DataFrame, case: bool = True) -> pd.DataFrame: # i
                 left.write('↳')
                 with right:
                     val = filters[column] if column in filters else ''
-                    st.write('Filter values for :material/search:' + str(column))
+                    st.write('Filter values for :primary-background[' + str(column) + ']')
                     filters[column] = st.text_input(
                         f'Pattern in {column}',
                         value=val,
