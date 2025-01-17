@@ -24,8 +24,8 @@ from PIL import Image
 import tifffile as tiff
 
 # text styling
-from annotated_text import annotated_text # needs requirements: streamlit_extras
-from streamlit_extras.keyboard_text import key
+#from annotated_text import annotated_text # needs requirements: streamlit_extras
+#from streamlit_extras.keyboard_text import key
 
 # for mineral identification charts & calc
 import numpy as np
