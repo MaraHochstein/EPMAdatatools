@@ -2,7 +2,7 @@
 # imports & cofig
 #######################
 # imports
-from utils.imports import (st, sst, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, annotated_text, key, base64, imagecodecs, html, copy, alt, np, go)
+from utils.imports import (st, sst, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, key, base64, imagecodecs, html, copy, alt, np, go) #, annotated_text
 import utils.func as fn
 from utils.funcKadi import kadiLoadFiles
 
@@ -148,7 +148,8 @@ st.divider()
 
 # NFDI4Earth
 st.markdown('<a href="https://nfdi4earth.de/" target="_blank"><img src="./app/static/logo-nfdi4earth.png" height="65" style="margin-bottom: 5px;"></a>',unsafe_allow_html=True)
-annotated_text('EPMA Data Tools is part of the ', ('[NFDI4Earth](https://nfdi4earth.de/)', ':link:', 'rgba(111, 184, 255, 0.24)'), ' pilot-project "Developing Tools and FAIR Principles for the MetBase Database". NFDI4Earth is funded by the German Research Foundation (DFG project no. 460036893).')
+st.write('EPMA Data Tools is part of the [NFDI4Earth](https://nfdi4earth.de/) pilot-project "Developing Tools and FAIR Principles for the MetBase Database". NFDI4Earth is funded by the German Research Foundation (DFG project no. 460036893).')
+#annotated_text('EPMA Data Tools is part of the ', ('[NFDI4Earth](https://nfdi4earth.de/)', ':link:', 'rgba(111, 184, 255, 0.24)'), ' pilot-project "Developing Tools and FAIR Principles for the MetBase Database". NFDI4Earth is funded by the German Research Foundation (DFG project no. 460036893).')
 
 #################
 #  sidebar
