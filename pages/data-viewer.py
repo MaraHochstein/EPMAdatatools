@@ -71,7 +71,7 @@ def dataframe_explorer(df: pd.DataFrame, case: bool = True) -> pd.DataFrame: # i
             if is_numeric_dtype(df[column]):
                 left.write('↳')
                 with right:
-                    st.write('Filter values for :material/search:' + str(column))
+                    st.write('Filter values for :primary-background[' + str(column) + ']')
                     _min = float(df[column].min())
                     _max = float(df[column].max())
                     val = (filters[column][0], filters[column][1]) if column in filters else (_min, _max)
