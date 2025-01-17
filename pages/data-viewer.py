@@ -2,7 +2,7 @@
 # imports & cofig
 #######################
 # imports
-from utils.imports import (st, sst, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, annotated_text, key, base64, imagecodecs, html, copy, alt, np, go)
+from utils.imports import (st, sst, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, base64, imagecodecs, html, copy, alt, np, go) #, annotated_text, key
 import utils.func as fn
 
 from pandas.api.types import (is_datetime64_any_dtype, is_numeric_dtype) # for dataframe_explorer
@@ -71,7 +71,8 @@ def dataframe_explorer(df: pd.DataFrame, case: bool = True) -> pd.DataFrame: # i
             if is_numeric_dtype(df[column]):
                 left.write('↳')
                 with right:
-                    annotated_text('Filter values for ', (column, ':mag:', 'rgba(111, 184, 255, 0.24)'))
+                    #annotated_text('Filter values for ', (column, ':mag:', 'rgba(111, 184, 255, 0.24)'))
+                    st.write('Filter values for ' + str(column))
                     _min = float(df[column].min())
                     _max = float(df[column].max())
                     val = (filters[column][0], filters[column][1]) if column in filters else (_min, _max)
@@ -91,7 +92,8 @@ def dataframe_explorer(df: pd.DataFrame, case: bool = True) -> pd.DataFrame: # i
                 left.write('↳')
                 with right:
                     val = filters[column] if column in filters else ''
-                    annotated_text('Filter values for ', (column, ':mag:', 'rgba(111, 184, 255, 0.24)'))
+                    #annotated_text('Filter values for ', (column, ':mag:', 'rgba(111, 184, 255, 0.24)'))
+                    st.write('Filter values for ' + str(column))
                     filters[column] = st.text_input(
                         f'Pattern in {column}',
                         value=val,
