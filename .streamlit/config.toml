@@ -2,7 +2,7 @@
 gatherUsageStats = false
 
 [client]
-showErrorDetails = false
+showErrorDetails = "none"
 toolbarMode = "minimal"
 showSidebarNavigation = false
 
