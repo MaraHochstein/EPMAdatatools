@@ -1,7 +1,7 @@
 #######################
 # imports
 #######################
-from utils.imports import (st, sst, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, base64, imagecodecs, html, copy, alt, np, go, openpyxl) #, annotated_text, key
+from utils.imports import (st, sst, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, base64, imagecodecs, html, copy, alt, np, go, openpyxl)
 import utils.func as fn
 
 import json

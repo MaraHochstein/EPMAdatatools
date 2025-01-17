@@ -709,7 +709,6 @@ else:
         #######################################    
         with st.expander('Click to view more information about **' + fn.pageNames['mineral']['name'] + '**', icon=fn.pageNames['mineral']['ico']):
             st.subheader('How are mineral formulas calculated?', anchor=False)
-            #annotated_text('Site occupation and element substitutions are adapted from the MATLAB-based program', ('[MinPlot 1.1](https://github.com/MinPlot/MinPlot_Program)', ':link:', 'rgba(111, 184, 255, 0.24)'), ' and all the references listed below the table in the expander **References for this mineral calculation**. All calculations assume that total Fe is ferrous Fe²⁺.')
             st.write('Site occupation and element substitutions are adapted from the MATLAB-based program [:primary-background[:material/link: MinPlot 1.1]](https://github.com/MinPlot/MinPlot_Program) and all the references listed below the table in the expander **References for this mineral calculation**. All calculations assume that total Fe is ferrous Fe²⁺.')
             st.subheader('How are prediction values calculated?', anchor=False)
             st.markdown('The probability of predicted minerals is calculated with respect to the site occupation and the amount of available elements (measured values). These values are calculated:')

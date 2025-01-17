@@ -2,7 +2,7 @@
 # imports & cofig
 #######################
 # imports
-from utils.imports import (st, sst, OAuth2Component, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, base64, imagecodecs, html, copy, alt, np, go) #, annotated_text, key
+from utils.imports import (st, sst, OAuth2Component, requests, urllib, datetime, pd, io, re, os, io, re, os, Image, tiff, base64, imagecodecs, html, copy, alt, np, go)
 import utils.func as fn
 
 #page config
