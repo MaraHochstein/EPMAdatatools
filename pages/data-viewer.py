@@ -293,7 +293,7 @@ else:
         # Data Filter
         ################
         if not sst.csvMerged.empty:
-            st.write('The table below shows the :red[merged data] from your imported raw data. Here you can filter data which should not be used for further processing.')
+            st.write('The table below shows the :primary[**merged data**] from your imported raw data. Here you can filter data which should not be used for further processing.')
             # load presets from kadi
             st.write('Reload a previously saved filter setting from Kadi4Mat:')
             left, right = st.columns((5,1))
