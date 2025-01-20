@@ -487,7 +487,7 @@ else:
         ################
         if sst.mapData != {}:
             st.subheader('Filter Element Maps', anchor=False)            
-            st.write(sst.mapImages)
+            
             # load map presets from kadi
             #############################
             st.write('Reload previously saved map settings from Kadi4Mat:')
