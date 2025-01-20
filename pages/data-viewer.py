@@ -217,9 +217,11 @@ def plotElementMap(selectedMap, selectedCmap, rangeSelMin, rangeSelMax, mWidth=2
     plt.savefig(imgBuffer, format='png', bbox_inches='tight')
     imgBuffer.seek(0) # move cursor back to start of buffer
     
-    sst.mapImages[selectedMap.replace('.csv','.png')] = imgBuffer.getvalue()
+    mapImageData = imgBuffer.getvalue() # returned to sst.mapImages[selectedMap]
+    
     plt.close()
-     
+    
+    return mapImageData
    
 # plot histogram for selected map
 @st.cache_data(show_spinner=False)
@@ -485,7 +487,7 @@ else:
         ################
         if sst.mapData != {}:
             st.subheader('Filter Element Maps', anchor=False)            
-            
+            st.write(sst.mapImages)
             # load map presets from kadi
             #############################
             st.write('Reload previously saved map settings from Kadi4Mat:')
@@ -663,14 +665,14 @@ else:
                         st.subheader('Preview', anchor=False)
                         # show map preview
                         if sst.mapEdit in sst.mapEditFilter['filterSettings']:
-                            plotElementMap(sst.mapEdit, selectedCmap, sst.mapEditFilter['filterSettings'][sst.mapEdit]['min'], sst.mapEditFilter['filterSettings'][sst.mapEdit]['max'], mWidth=5, mHeight=2)
+                            sst.mapImages[sst.mapEdit.replace('.csv','.png')] = plotElementMap(sst.mapEdit, selectedCmap, sst.mapEditFilter['filterSettings'][sst.mapEdit]['min'], sst.mapEditFilter['filterSettings'][sst.mapEdit]['max'], mWidth=5, mHeight=2)
                             # show plot
                             ## map infos
                             st.markdown('**Details for this ' + str(sst.mapData[sst.mapEdit]['element']) + ('-' if sst.mapData[sst.mapEdit]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[sst.mapEdit]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[sst.mapEdit]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[sst.mapEdit]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(sst.mapEdit.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(sst.mapEdit.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
                             ## use st.image instead of st.pyplot to avoid "MediaFileHandler: Missing file"-error
                             st.image(sst.mapImages[sst.mapEdit.replace('.csv','.png')], use_container_width=True)
                         else:
-                            plotElementMap(sst.mapEdit, selectedCmap, rangeSelMin, rangeSelMax,  mWidth=5, mHeight=2)
+                            sst.mapImages[sst.mapEdit.replace('.csv','.png')] = plotElementMap(sst.mapEdit, selectedCmap, rangeSelMin, rangeSelMax,  mWidth=5, mHeight=2)
                             # show plot
                             ## map infos
                             st.markdown('**Details for this ' + str(sst.mapData[sst.mapEdit]['element']) + ('-' if sst.mapData[sst.mapEdit]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[sst.mapEdit]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[sst.mapEdit]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[sst.mapEdit]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(sst.mapEdit.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(sst.mapEdit.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
@@ -709,7 +711,7 @@ else:
                         dMin, dMax, dMean, dStd, rSelMin, rSelMax = getRangeSelect(mapId)
                     if i == 0:
                         with col1:
-                            plotElementMap(mapId, selectedCmap, rSelMin, rSelMax)
+                            sst.mapImages[mapId.replace('.csv','.png')] = plotElementMap(mapId, selectedCmap, rSelMin, rSelMax)
                             # show plot
                             ## map infos
                             st.markdown('**Details for this ' + str(sst.mapData[mapId]['element']) + ('-' if sst.mapData[mapId]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[mapId]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[mapId]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[mapId]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
@@ -722,7 +724,7 @@ else:
                                 st.rerun() # reload user settings expander
                     elif i == 1:
                         with col2:
-                            plotElementMap(mapId, selectedCmap, rSelMin, rSelMax)
+                            sst.mapImages[mapId.replace('.csv','.png')] = plotElementMap(mapId, selectedCmap, rSelMin, rSelMax)
                             # show plot
                             ## map infos
                             st.markdown('**Details for this ' + str(sst.mapData[mapId]['element']) + ('-' if sst.mapData[mapId]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[mapId]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[mapId]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[mapId]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
@@ -734,7 +736,7 @@ else:
                                 st.rerun()
                     else:
                         with col3:
-                            plotElementMap(mapId, selectedCmap, rSelMin,rSelMax)
+                            sst.mapImages[mapId.replace('.csv','.png')] = plotElementMap(mapId, selectedCmap, rSelMin,rSelMax)
                             # show plot
                             ## map infos
                             st.markdown('**Details for this ' + str(sst.mapData[mapId]['element']) + ('-' if sst.mapData[mapId]['type'] != 'COMPO' else '') + 'map of ' + str(sst.mapData[mapId]['sample']) + '**', help='X-ray line: ' + str(sst.mapData[mapId]['characteristicLine']) + '\n\n Type: ' + str(sst.mapData[mapId]['type']) + '\n\n Dwell time: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Dwell Time (ms)', 'Value']) + ' ms\n\n Pixel size: ' + str(sst.mapGeneralData[' '.join(mapId.split()[:2])].loc['Pixel Size (µm) (x | y)', 'Value']).replace('|', ' µm x') + ' µm')
