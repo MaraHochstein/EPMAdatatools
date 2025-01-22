@@ -620,10 +620,69 @@ def getTernaryPlotValues(mineral, elementA, elementB, elementC):
     return pointsCombined1, pointsCombined2
 
 # make ternary scatter plot with plotly and return fig
-def makeTernaryPlot(pointsCombined1, pointsCombined2, elementA, elementB, elementC, labelA, labelB, labelC):        
+def makeTernaryPlot(diagramType, pointsCombined1, pointsCombined2, elementA, elementB, elementC, labelA, labelB, labelC):        
     # ternary scatter plot
     if len(pointsCombined1) > 1 or len(pointsCombined2) > 1:
         fig = go.Figure()
+        
+        # mineral fields for ternary
+        if diagramType == 'Pyroxene':
+            # dividing lines
+            fig.add_trace(go.Scatterternary(
+                # 1: line above Diopside / Hedenbergite
+                # 2: line below Diopside / Hedenbergite
+                # 3: line below Augite
+                # 4: line below Pigeonite
+                # 5: line between Diopside / Hedenbergite
+                # 6: line between Enstatite / Ferrosilite
+                a = [0.5, 0.5, None, 0.45, 0.45, None, 0.2, 0.2, None, 0.05, 0.05, None, 0.5, 0.45, None, 0.05, 0],
+                b = [0.5, 0, None, 0.55, 0, None, 0.8, 0, None, 0.95, 0, None, 0.25, 0.275, None, 0.475, 0.5],
+                c = [0, 0.5, None, 0, 0.55, None, 0, 0.8, None, 0, 0.95, None, 0.25, 0.275, None, 0.475, 0.5],
+                mode = 'lines',
+                line_width = 1,
+                line_color = 'black',
+                showlegend = False,
+                hoverinfo = 'skip'
+            ))
+            
+            # mineral names
+            fig.add_trace(go.Scatterternary(
+                a = [0.7, 0.475, 0.475, 0.325, 0.125, 0.025, 0.025],
+                b = [0.15, 0.375, 0.15, 0.3375, 0.4375, 0.725, 0.225],
+                c = [0.15, 0.15, 0.375, 0.3375, 0.4375, 0.25, 0.75],
+                mode = 'text',
+                text = ['No pyroxenes', 'Diopside', 'Hedenbergite', 'Augite', 'Pigeonite', 'Enstatite', 'Ferrosilite'],
+                textfont = {'family': 'Arial', 'size': 13, 'color': 'black', 'shadow': 'auto'},
+                showlegend = False,
+                hoverinfo = 'skip'
+            ))
+        elif diagramType == 'Olivine':
+            fig.add_trace(go.Scatterternary(
+                # 1: line between Monticellite / Kirschsteinite
+                a = [0.5, 0.5],
+                b = [0.5, 0],
+                c = [0, 0.5],
+                mode = 'lines',
+                line_width = 1,
+                line_color = 'black',
+                showlegend = False,
+                hoverinfo = 'skip'
+            ))
+            
+            # mineral names
+            fig.add_trace(go.Scatterternary(
+                a = [0.5, 0.5],
+                b = [0.5, 0],
+                c = [0, 0.5],
+                mode = 'text',
+                text = ['Monticellite         <br>CaMgSiO₄          ', '        Kirschsteinite<br>          CaFeSiO₄'],
+                textfont = {'family': 'Arial', 'size': 13, 'color': 'black', 'shadow': 'auto'},
+                showlegend = False,
+                hoverinfo = 'skip',
+                textposition = ['top left','top right'],
+                cliponaxis = False
+            ))
+        
         ######## loop
         # 1st predicted minerals
         if len(pointsCombined1) > 1:
@@ -657,15 +716,15 @@ def makeTernaryPlot(pointsCombined1, pointsCombined2, elementA, elementB, elemen
             # axis
             ternary = dict(
                 sum = 100,
-                aaxis = dict(title=labelA, tickformat='.0f', tickmode='linear', tick0=0, dtick=10, ticksuffix=' %', ticklen=5, color='black', gridcolor='gray'),
-                baxis = dict(title=labelB, tickformat='.0f', tickmode='linear', tick0=0, dtick=10, ticksuffix=' %', ticklen=5, color='black', gridcolor='gray'), 
-                caxis = dict(title=labelC, tickformat='.0f', tickmode='linear', tick0=0, dtick=10, ticksuffix=' %', ticklen=5, color='black', gridcolor='gray')
+                aaxis = dict(title=labelA, tickformat='.0f', tickmode='linear', tick0=0, dtick=10, ticksuffix=' %', ticklen=5, color='black', gridcolor='lightgray'),
+                baxis = dict(title=labelB, tickformat='.0f', tickmode='linear', tick0=0, dtick=10, ticksuffix=' %', ticklen=5, color='black', gridcolor='lightgray'), 
+                caxis = dict(title=labelC, tickformat='.0f', tickmode='linear', tick0=0, dtick=10, ticksuffix=' %', ticklen=5, color='black', gridcolor='lightgray')
             ),
             # style
             showlegend = True,
             legend = dict(title='Rank', font=dict(color='black')),
-            height = 450,
-            width = 750,
+            height = 700,
+            width = 850,
             scattermode = 'overlay',
             plot_bgcolor = 'white',
             paper_bgcolor = 'white',
@@ -860,7 +919,7 @@ else:
                 if not (pointsCombined1.empty and pointsCombined2.empty):                  
                     # output
                     st.subheader(mineral[0] + ' ternary diagram for _@' + sst.recordName + '_' if sst.userType != 'demo' else mineral[0] + ' ternary diagram for _Quantitative Demo Dataset_', anchor=False)
-                    fig = makeTernaryPlot(pointsCombined1, pointsCombined2, mineral[1], mineral[2], mineral[3], mineral[4], mineral[5], mineral[6])
+                    fig = makeTernaryPlot(mineral[0], pointsCombined1, pointsCombined2, mineral[1], mineral[2], mineral[3], mineral[4], mineral[5], mineral[6])
                     if not fig == None:
                         st.plotly_chart(fig, theme=None, use_container_width=False)
          
