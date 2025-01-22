@@ -317,12 +317,25 @@ def addLines(noLines):
 # load custom css
 def loadCSS():
     #####################################
+    # hide menu on right side
+    #####################################
+    st.html(
+    """
+    <style>
+    ._profileContainer_gzau3_53, ._container_gzau3_1, .st-emotion-cache-15ecox0 {
+        display: none;
+    }
+    </style>
+    """)
+    
+    
+    #####################################
     # hide tracebacks in error messages
     #####################################
     st.html(
     """
     <style>
-    .e1dl0tyv1, .e1dl0tyv0  {
+    .e1dl0tyv1, .e1dl0tyv0 {
         display: none;
     }
     </style>
