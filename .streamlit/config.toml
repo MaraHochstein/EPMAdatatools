@@ -1,21 +1,22 @@
 [logger]
-level='info'
+level = 'info'
 
 [client]
-showErrorDetails='none'
-toolbarMode='minimal'
-showSidebarNavigation=false
+showErrorDetails = 'none'
+toolbarMode = 'minimal'
+showSidebarNavigation = false
 
 [runner]
-fastReruns=false
+fastReruns = false
 
 [server]
-enableStaticServing=true
+enableStaticServing = true
 
 [browser]
-gatherUsageStats=false
+gatherUsageStats = false
 
 [theme]
-base='dark'
-primaryColor='rgb(62, 150, 170)'
-backgroundColor='rgb(17, 18, 21)'
+base = 'dark'
+primaryColor = 'rgb(62, 150, 170)'
+backgroundColor = 'rgb(17, 18, 21)'
+font = 'sans serif'
