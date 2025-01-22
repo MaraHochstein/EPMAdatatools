@@ -30,7 +30,7 @@ kadiApiBaseURL = 'https://kadi4mat.iam.kit.edu'
 fn.initSessionState()
 
 #page config
-st.set_page_config(page_title='EPMA Data Tools', page_icon='./app/static/logo.png', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='EPMA Data Tools', page_icon='./app/static/logo.png', layout='wide', initial_sidebar_state='expanded', menu_items={'Get help': None, 'Report a Bug': 'https://github.com/MaraHochstein/EPMAdatatools/issues', 'About': None})
 
 # refresh oauth token if logged in
 fn.refreshOauthToken()
