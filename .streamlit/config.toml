@@ -3,7 +3,7 @@ level = 'info'
 
 [client]
 showErrorDetails = 'none'
-toolbarMode = 'viewer'
+toolbarMode = 'minimal'
 showSidebarNavigation = false
 
 [runner]
