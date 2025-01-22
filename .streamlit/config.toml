@@ -18,3 +18,4 @@ gatherUsageStats=false
 [theme]
 base='dark'
 primaryColor='rgb(62, 150, 170)'
+backgroundColor='rgb(17, 18, 21)'
