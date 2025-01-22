@@ -4,7 +4,7 @@ level = 'info'
 [client]
 showErrorDetails = 'none'
 toolbarMode = 'minimal'
-showSidebarNavigation = false
+showSidebarNavigation = true
 
 [runner]
 fastReruns = false
