@@ -1,0 +1,22 @@
+[logger]
+level = 'info'
+
+[client]
+showErrorDetails = 'none'
+toolbarMode = 'minimal'
+showSidebarNavigation = true
+
+[runner]
+fastReruns = false
+
+[server]
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = 'dark'
+primaryColor = 'rgb(62, 150, 170)'
+backgroundColor = 'rgb(17, 18, 21)'
+font = 'sans serif'
