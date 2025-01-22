@@ -1,20 +1,20 @@
-[browser]
-gatherUsageStats = false
+[logger]
+level='info'
 
 [client]
-showErrorDetails = "none"
-toolbarMode = "minimal"
-showSidebarNavigation = false
-
-[theme]
-base = "dark"
-primaryColor="rgb(62, 150, 170)"
-
-[server]
-enableStaticServing = true
+showErrorDetails='none'
+toolbarMode='minimal'
+showSidebarNavigation=false
 
 [runner]
-fastReruns = false
+fastReruns=false
 
-[logger]
-level = 'info' # 'error', 'warning', 'info', or 'debug'
+[server]
+enableStaticServing=true
+
+[browser]
+gatherUsageStats=false
+
+[theme]
+base='dark'
+primaryColor='rgb(62, 150, 170)'
