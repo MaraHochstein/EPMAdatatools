@@ -322,7 +322,7 @@ def loadCSS():
     st.html(
     """
     <style>
-    ._profileContainer_gzau3_53, ._profilePreview_gzau3_63, ._container_gzau3_1, .st-emotion-cache-15ecox0 {
+    ._profileContainer_gzau3_53, ._profilePreview_gzau3_63, ._container_gzau3_1 {
         display: none;
     }
     </style>
