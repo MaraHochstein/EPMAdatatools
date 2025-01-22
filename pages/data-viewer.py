@@ -56,6 +56,27 @@ def dataframe_explorer(df: pd.DataFrame, case: bool = True) -> pd.DataFrame: # i
     modification_container = st.container()
     
     with modification_container:
+        # recalculate FeO to Fe2O3
+        st.subheader(':material/function: Recalculate FeO to Fe₂O₃')            
+        sst.recalculateFeO = st.toggle('Recalculate FeO (wt%) to Fe₂O₃ (wt%) – this adds another column to the filtered dataset', value=False, disabled='FeO (wt%)' not in df.columns, label_visibility='visible', help='The value of FeO (wt%) will be multiplied by 1.111')
+        if sst.recalculateFeO:
+            df['Fe2O3 (wt%)'] = df['FeO (wt%)'] * 1.111
+            df.insert(df.columns.get_loc('FeO (wt%)'), 'Fe2O3 (wt%)', df.pop('Fe2O3 (wt%)'))
+        else:
+            if 'Fe2O3 (wt%)' in df.columns:
+                # delete Fe2O3 from table if toggle off
+                df.drop(columns=['Fe2O3 (wt%)'], inplace=True)
+        
+        # delete Fe2O3 from filter settings if not in table
+        if 'Fe2O3 (wt%)' not in df and 'Fe2O3 (wt%)' in sst.dataViewerFilter['filterSettings']:
+            del sst.dataViewerFilter['filterSettings']['Fe2O3 (wt%)']
+            sst.dataViewerFilter['filterColumns'].remove('Fe2O3 (wt%)')
+        
+        st.subheader(':material/filter_alt: Filter columns')
+        # show info if duplicates have been renamed        
+        if sst.csvMerged['Sample Name'].str.contains('_dupl', na=False).any():
+            st.warning('Some Sample Names have been renamed to merge the raw data files. You can filter these samples by the *_dupl*-suffix in the *Sample Name* column below.', icon=':material/info:')
+                
         st.write('Select columns to filter (select as many as needed):')
         to_filter_columns = st.multiselect(
                 'Select columns to filter (select as many as needed):',
@@ -295,8 +316,9 @@ else:
         # Data Filter
         ################
         if not sst.csvMerged.empty:
-            st.write('The table below shows the :primary[**merged data**] from your imported raw data. Here you can filter data which should not be used for further processing.')
+            
             # load presets from kadi
+            st.subheader(':material/rule_settings: Load filter settings from Kadi4Mat')
             st.write('Reload a previously saved filter setting from Kadi4Mat:')
             left, right = st.columns((5,1))
             with left:
@@ -319,10 +341,7 @@ else:
             if presetSelected != None:
                 sst.dataViewerFilter = sst.kadiFilter[presetSelected]
             
-            # show info if duplicates have been renamed
-            if sst.csvMerged['Sample Name'].str.contains('_dupl', na=False).any():
-                st.warning('Some Sample Names have been renamed to merge the raw data files. You can filter these samples by the *_dupl*-suffix in the *Sample Name* column below.', icon=':material/info:')
-            
+            # show data filter & table
             sst.csvMergedFiltered = dataframe_explorer(sst.csvMerged, case=False)
             st.subheader('Filtered data (' + str(len(sst.csvMergedFiltered.index)) + '/' + str(len(sst.csvMerged.index)) + ' entries filtered)' if sst.userType != 'demo' else 'Filtered data from _Quantitative Demo Dataset_ (' + str(len(sst.csvMergedFiltered.index)) + '/' + str(len(sst.csvMerged.index)) + ' entries filtered)', anchor=False)
             sst.csvMergedFiltered
