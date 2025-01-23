@@ -70,7 +70,11 @@ def showKadiImport():
                     recordID = st.text_input('kadirecordid', label_visibility='collapsed', disabled=(not sst.userLoggedIn))
             else:
                 recordID = ''
-                
+            
+            st.info('Records with many images or maps may take more time to load. You can exclude images or maps from the current import (if applicable). Quantitative measurements will always be loaded, as they do not significantly affect the import time.', icon=':material/hourglass:')
+            sst.importImages = st.toggle('Import images from Kadi4Mat', value=True, key='importImg', label_visibility='visible')
+            sst.importMaps = st.toggle('Import element maps from Kadi4Mat', value=True, key='importMap', label_visibility='visible')
+            
             if st.button('Get data from record', type='primary', disabled=(not sst.userLoggedIn)):
                 sst.recordID = recordID
                 sst.recordName = sst.userRecords[int(recordID)]
@@ -96,6 +100,10 @@ def showGufImport():
             # pwd input field
             st.write('2. Please enter the password for your record:', unsafe_allow_html=True)
             pwdUser = str(st.text_input('pwduser', label_visibility='collapsed', type='password', max_chars=12))
+        
+        st.info('Records with many images or maps may take more time to load. You can exclude images or maps from the current import (if applicable). Quantitative measurements will always be loaded, as they do not significantly affect the import time.', icon=':material/hourglass:')
+        sst.importImages = st.toggle('Import images from Kadi4Mat', value=True, key='importImg', label_visibility='visible')
+        sst.importMaps = st.toggle('Import element maps from Kadi4Mat', value=True, key='importMap', label_visibility='visible')
         
         if st.button('Get data from record', type='primary'):
             sst.recordID = recordID

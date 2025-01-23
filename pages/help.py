@@ -39,7 +39,7 @@ st.info('For details on record and file naming read our documentation', icon=':m
 st.link_button('Read the documentation', 'https://hezel2000.quarto.pub/mag4/microprobe/data-access/kadi-upload.html')
 
 st.subheader('Contact', anchor=False)
-st.write('If you have any questions or want to provide feedback about EPMA Data Tools, please use this Email for contact: dominik.hezel - at - em.uni-frankfurt.de.')
+st.write('If you have any questions or want to provide feedback about EPMA Data Tools, please use this Email for contact or open an Issue on GitHub (link below): dominik.hezel - at - em.uni-frankfurt.de.')
 st.link_button('Browse or Open an Issue on GitHub', 'https://github.com/MaraHochstein/EPMAdatatools/issues')
 
 ## testing

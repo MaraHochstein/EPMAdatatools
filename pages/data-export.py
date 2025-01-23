@@ -289,7 +289,7 @@ else:
     # images & element maps
     #########################   
     st.write('')
-    st.subheader('Download image files (*.jpg, *.tif) as zip-archives', anchor=False)
+    st.subheader('Download image (\*.jpg, \*.tif) & map files (\*.png) as zip-archives', anchor=False)
     if len(sst.imageData) > 0:
         if sst.createZipImg == 1:
             imgZipDownloadButton()
@@ -309,6 +309,8 @@ else:
         zipDataMap = zipBytes.getvalue()
         
         filename = sst.recordName + '_map-files.zip'
+        
+        st.write('Map images will be downloaded as *.png-files with display settings chosen in **:material/blur_on: Element Maps** under ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '**')
         
         # download button
         st.download_button('**Save ' + filename + '**', zipDataMap,

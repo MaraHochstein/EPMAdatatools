@@ -15,6 +15,8 @@ variableList = [
     
     ['kadiLoaded', False],
     ['kadiMetaData', pd.DataFrame()],
+    ['importImages', True],
+    ['importMaps', True],
     
     ['imageFiles', {}],
     ['imageData', []],
@@ -77,7 +79,7 @@ pageNames = {
         'viewer': {'name': 'View & Filter Data', 'ico': ':material/lab_research:'},
         'mineral': {'name': 'Mineral Identification', 'ico': ':material/diamond:'},
         'export': {'name': 'Data Export & Upload', 'ico': ':material/export_notes:'},
-        'help': {'name': 'Contact', 'ico': ':material/contact_support:'},
+        'help': {'name': 'Support', 'ico': ':material/contact_support:'},
         }
 
 #####################

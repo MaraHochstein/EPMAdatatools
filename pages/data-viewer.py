@@ -370,6 +370,8 @@ else:
                     else:
                         col4.image(imgData, caption=sst.imageFiles[imageId], use_container_width=True)
             st.info('Check out **' + fn.pageNames['export']['name'] + '** if you want to download the images (*.jpg, *.tif) as zip-archive', icon=fn.pageNames['export']['ico'])
+        elif not sst.importImages:
+            st.info('Images were excluded from import. Clear the import and reload the dataset with image import enabled to show images for this record.', icon=':material/sync_disabled:')
         else:
             st.info('This record contains no image data.', icon=':material/visibility_off:')
 
@@ -446,12 +448,12 @@ else:
                         
                         # WDS measurements
                         if mapNameJson in sst.mapWdsData:
-                            st.subheader('WDS Measurement Conditions')
+                            st.subheader('WDS (Wavelength-Dispersive Spectrometry) Measurement Conditions')
                             st.table(sst.mapWdsData[mapNameJson])
                            
                         # EDS measurements
                         if mapNameJson in sst.mapEdsData:
-                            st.subheader('EDS Measurement Conditions')
+                            st.subheader('EDS (Energy-Dispersive Spectrometry) Measurement Conditions')
                             st.table(sst.mapEdsData[mapNameJson])
         
         # Kadi Metadata    
@@ -504,7 +506,7 @@ else:
         ################
         # Element Maps
         ################
-        if sst.mapData != {}:
+        if sst.mapData != {} and sst.importMaps:
             st.subheader('Filter Element Maps', anchor=False)            
             
             # load map presets from kadi
@@ -704,7 +706,7 @@ else:
 
             st.divider()
             
-            st.info('Creation of Element Maps may take some time, this is indicated by the *RUNNING...* icon in the top right corner.', icon=':material/directions_run:')
+            st.info('First creation of Element Maps may take some time, this is indicated by the *RUNNING...* icon in the top right corner.', icon=':material/directions_run:')
             
 
             # show maps
@@ -769,5 +771,8 @@ else:
             
             st.info('Check out **' + fn.pageNames['export']['name'] + '** if you want to download these map images (*.jpg, *.tif) as zip-archive or upload the map settings to Kadi4Mat.', icon=fn.pageNames['export']['ico'])
 
+        elif not sst.importMaps:
+            st.info('Element maps were excluded from import. Clear the import and reload the dataset with map import enabled to show element maps for this record.', icon=':material/sync_disabled:')
+        
         else:
             st.info('This record contains no element map data.', icon=':material/visibility_off:')

@@ -232,19 +232,19 @@ def kadiLoadFiles(parentContainer = False):
                         elif item['mimetype'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and item['name'] == standardsXlsxName:
                             standardsXlsxFile[item['id']] = item['name']
                         # map parameter jsons
-                        elif item['name'].startswith('map ') and item['mimetype'] == 'application/json':
+                        elif item['name'].startswith('map ') and item['mimetype'] == 'application/json' and sst.importMaps:
                             mapJsons[item['id']] = item['name']                        
                         # images
-                        elif item['mimetype'] == 'image/tiff' or item['mimetype'] == 'image/jpeg':
+                        elif item['mimetype'] == 'image/tiff' or item['mimetype'] == 'image/jpeg' and sst.importImages:
                             imageFiles[item['id']] = item['name']
                         # filter
                         elif 'filter' in item['name'] and item['mimetype'] == 'text/plain':
                             kadiFilter[item['id']] = item['name']
                         # maps
-                        elif item['name'].startswith('map ') and item['mimetype'] == 'text/csv':
+                        elif item['name'].startswith('map ') and item['mimetype'] == 'text/csv' and sst.importMaps:
                             mapFiles[item['id']] = item['name']
                         # map settings
-                        elif 'mapSettings' in item['name'] and item['mimetype'] == 'text/plain':
+                        elif 'mapSettings' in item['name'] and item['mimetype'] == 'text/plain' and sst.importMaps:
                             mapFilter[item['id']] = item['name']
                         
                 
@@ -301,7 +301,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - json
                 ##############################
                 
-                if len(mapFiles) > 0:
+                if len(mapFiles) > 0 and sst.importMaps:
                     if len(mapJsons) < 1:
                         missingFiles.append(mapJsonName + '-file(s)')
                     
@@ -506,16 +506,17 @@ def kadiLoadFiles(parentContainer = False):
                 # - 3c1. json
                 #################################
                 
-                if len(mapFiles) > 0 and len(mapJsons) > 0:
-                    
-                    # 3c1. load map jsons
-                    ####################################
-                    for i, mapJsonID in enumerate(mapJsons.keys()):
-                        data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + mapJsonID + '/download'))
-                        if len(data) > 0: # json contains something
-                            mapJsonsData[mapJsons[mapJsonID].rstrip('.json')] = data
-                        else:
-                            invalidFiles.append(mapJsonName + '-file(s)')
+                if sst.importMaps:
+                    if len(mapFiles) > 0 and len(mapJsons) > 0:
+                        
+                        # 3c1. load map jsons
+                        ####################################
+                        for i, mapJsonID in enumerate(mapJsons.keys()):
+                            data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + mapJsonID + '/download'))
+                            if len(data) > 0: # json contains something
+                                mapJsonsData[mapJsons[mapJsonID].rstrip('.json')] = data
+                            else:
+                                invalidFiles.append(mapJsonName + '-file(s)')
                     
                     
                 # 3end. check if all raw files contain data for merging
@@ -735,120 +736,121 @@ def kadiLoadFiles(parentContainer = False):
                 # -> infos in json
                 ####################################################
                 
-                if len(mapFiles) > 0 and len(mapJsonsData) > 0:
-                
-                    # 4b1. Map Conditions:
-                    # - 4b11. "General Parameters" (mapJsonsData -> sst.mapGeneralData)
-                    # - 4b12. "WDS Measurement Conditions" (mapJsonsData -> sst.mapWdsData)
-                    # - 4b13. "EDS Measurement Conditions" (mapJsonsData -> sst.mapEdsData)
-                    ###########################################################################
+                if sst.importMaps:
+                    if len(mapFiles) > 0 and len(mapJsonsData) > 0:
                     
-                    try:                   
-                        # for every map
-                        for mapNameJson in mapJsonsData.keys():
+                        # 4b1. Map Conditions:
+                        # - 4b11. "General Parameters" (mapJsonsData -> sst.mapGeneralData)
+                        # - 4b12. "WDS Measurement Conditions" (mapJsonsData -> sst.mapWdsData)
+                        # - 4b13. "EDS Measurement Conditions" (mapJsonsData -> sst.mapEdsData)
+                        ###########################################################################
                         
-                            # 4b11. "General Information"
-                            #        -> infos in mapJsonsData
-                            #        -> merged to sst.mapGeneralData for map
-                            #########################################################
-
-                            # get data from jsons
-                            mapGeneral = [ 
-                                ['Saved Path', mapJsonsData[mapNameJson]['general parameters']['save path']] if 'save path' in mapJsonsData[mapNameJson]['general parameters'] else ['Saved Path', ''], 
-                                ['Project', mapJsonsData[mapNameJson]['general parameters']['project name']] if 'project name' in mapJsonsData[mapNameJson]['general parameters'] else ['Project', ''], 
-                                ['Sample Name', mapJsonsData[mapNameJson]['general parameters']['sample name']] if 'sample name' in mapJsonsData[mapNameJson]['general parameters'] else ['Sample Name', ''],
-                                ['Date', mapJsonsData[mapNameJson]['general parameters']['date']] if 'date' in mapJsonsData[mapNameJson]['general parameters'] else ['Date', ''],
-                                ['Accelerating Voltage (kV)', mapJsonsData[mapNameJson]['general parameters']['accelerating voltage (kV)']] if 'accelerating voltage (kV)' in mapJsonsData[mapNameJson]['general parameters'] else ['Accelerating Voltage (kV)', ''], 
-                                ['Target Probe Current (nA)', round((float(mapJsonsData[mapNameJson]['general parameters']['target probe current (nA)'])/float('1.0e-09')),3)] if 'target probe current (nA)' in mapJsonsData[mapNameJson]['general parameters'] else ['Target Probe Current (nA)', ''], 
-                                ['Probe Current (nA)', round((float(mapJsonsData[mapNameJson]['general parameters']['probe current (nA)'])/float('1.0e-09')),3)] if 'probe current (nA)' in mapJsonsData[mapNameJson]['general parameters'] else ['Probe Current (nA)', ''], 
-                                ['Probe Diameter (µm)', mapJsonsData[mapNameJson]['general parameters']['probe diameter (µm)']] if 'probe diameter (µm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Probe Diameter (µm)', ''], 
-                                ['Dwell Time (ms)', mapJsonsData[mapNameJson]['general parameters']['dwell time (ms)']] if 'dwell time (ms)' in mapJsonsData[mapNameJson]['general parameters'] else ['Dwell Time (ms)', ''], 
-                                ['No. of Pixels (x | y)', mapJsonsData[mapNameJson]['general parameters']['number of pixels: x, y'].replace(' ', ' | ')] if 'number of pixels: x, y' in mapJsonsData[mapNameJson]['general parameters'] else ['No. of Pixels (x | y)', ''], 
-                                ['Pixel Size (µm) (x | y)', ' '.join(mapJsonsData[mapNameJson]['general parameters']['pixel size: x, y (µm)'].split()[:2]).replace(' ', ' | ')] if 'pixel size: x, y (µm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Pixel Size (x | y)', ''], 
-                                ['Stage Position (mm): Center (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position center (mm)'].replace(' ', ' | ')] if 'stage position center (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Center (x | y | z)', ''], 
-                                ['Stage Position (mm): Upper left (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position upper left (mm)'].replace(' ', ' | ')] if 'stage position upper left (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Upper left (x | y | z)', ''],  
-                                ['Stage Position (mm): Upper right (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position upper right (mm)'].replace(' ', ' | ')] if 'stage position upper right (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Upper right (x | y | z)', ''],  
-                                ['Stage Position (mm): Lower right (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position lower right (mm)'].replace(' ', ' | ')] if 'stage position lower right (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Lower right (x | y | z)', ''],  
-                                ['Stage Position (mm): Lower left (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position lower left (mm)'].replace(' ', ' | ')] if 'stage position lower left (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Lower left (x | y | z)', ''], 
-                                ['WDS Elements', ', '.join(sorted(mapJsonsData[mapNameJson]['general parameters']['wds elements']))] if 'wds elements' in mapJsonsData[mapNameJson]['general parameters'] else ['WDS Elements', ''], 
-                                ['EDS Elements', ', '.join(sorted(mapJsonsData[mapNameJson]['general parameters']['eds elements']))] if 'eds elements' in mapJsonsData[mapNameJson]['general parameters'] else ['EDS Elements', '']
-                            ]
+                        try:                   
+                            # for every map
+                            for mapNameJson in mapJsonsData.keys():
                             
-                            # merge to df
-                            firstCol = []
-                            dataCol = []
-                            for i in range(0,len(mapGeneral)):
-                                firstCol.append(mapGeneral[i][0])
-                                dataCol.append(mapGeneral[i][1])
-                            sst.mapGeneralData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])
-                    
-                            # 4b12. "WDS Measurement Conditions"
-                            #        -> infos in mapJsonsData
-                            #        -> merged to sst.mapWdsData for map
-                            #####################################################
-                        
-                            # get data from jsons if there are wds elements
-                            if 'wds elements' in mapJsonsData[mapNameJson]['general parameters']:
+                                # 4b11. "General Information"
+                                #        -> infos in mapJsonsData
+                                #        -> merged to sst.mapGeneralData for map
+                                #########################################################
 
-                                # get wds elements
-                                wdsElements = sorted(mapJsonsData[mapNameJson]['general parameters']['wds elements'])
-                                
-                                # get wds data
-                                mapWDS = [
-                                    ['Characteristic Line', [mapJsonsData[mapNameJson]['element specific parameters'][element]['characteristic line'] if 'characteristic line' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Characteristic Line', ''] for element in wdsElements]],
-                                    ['Order', [mapJsonsData[mapNameJson]['element specific parameters'][element]['order'] if 'order' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Order', ''] for element in wdsElements]],
-                                    ['Analyser Crystal', [mapJsonsData[mapNameJson]['element specific parameters'][element]['analyser crystal'] if 'analyser crystal' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Analyser Crystal', ''] for element in wdsElements]],
-                                    ['PHA Mode', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA mode'] if 'PHA mode' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Mode', ''] for element in wdsElements]],
-                                    ['PHA Gain', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA gain'] if 'PHA gain' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Gain', ''] for element in wdsElements]],
-                                    ['PHA Base Level (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA base level (V)'] if 'PHA base level (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Base Level (V)', ''] for element in wdsElements]],
-                                    ['PHA Window (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA window (V)'] if 'PHA window (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Window (V)', ''] for element in wdsElements]],
-                                    ['Detector High V. (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['detector HV (V)'] if 'detector HV (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Detector High V. (V)', ''] for element in wdsElements]],
-                                    ['Sequence', [mapJsonsData[mapNameJson]['element specific parameters'][element]['sequence'] if 'sequence' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Sequence', ''] for element in wdsElements]],
-                                    ['Spectrometer', [mapJsonsData[mapNameJson]['element specific parameters'][element]['spectrometer'] if 'spectrometer' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Spectrometer', ''] for element in wdsElements]],
-                                    ['Spectrometer radius (mm)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['spectrometer radius (mm)'] if 'spectrometer radius (mm)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Spectrometer radius (mm)', ''] for element in wdsElements]],
-                                    ['Peak (mm)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['peak (mm)'] if 'peak (mm)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Peak (mm)', ''] for element in wdsElements]]
+                                # get data from jsons
+                                mapGeneral = [ 
+                                    ['Saved Path', mapJsonsData[mapNameJson]['general parameters']['save path']] if 'save path' in mapJsonsData[mapNameJson]['general parameters'] else ['Saved Path', ''], 
+                                    ['Project', mapJsonsData[mapNameJson]['general parameters']['project name']] if 'project name' in mapJsonsData[mapNameJson]['general parameters'] else ['Project', ''], 
+                                    ['Sample Name', mapJsonsData[mapNameJson]['general parameters']['sample name']] if 'sample name' in mapJsonsData[mapNameJson]['general parameters'] else ['Sample Name', ''],
+                                    ['Date', mapJsonsData[mapNameJson]['general parameters']['date']] if 'date' in mapJsonsData[mapNameJson]['general parameters'] else ['Date', ''],
+                                    ['Accelerating Voltage (kV)', mapJsonsData[mapNameJson]['general parameters']['accelerating voltage (kV)']] if 'accelerating voltage (kV)' in mapJsonsData[mapNameJson]['general parameters'] else ['Accelerating Voltage (kV)', ''], 
+                                    ['Target Probe Current (nA)', round((float(mapJsonsData[mapNameJson]['general parameters']['target probe current (nA)'])/float('1.0e-09')),3)] if 'target probe current (nA)' in mapJsonsData[mapNameJson]['general parameters'] else ['Target Probe Current (nA)', ''], 
+                                    ['Probe Current (nA)', round((float(mapJsonsData[mapNameJson]['general parameters']['probe current (nA)'])/float('1.0e-09')),3)] if 'probe current (nA)' in mapJsonsData[mapNameJson]['general parameters'] else ['Probe Current (nA)', ''], 
+                                    ['Probe Diameter (µm)', mapJsonsData[mapNameJson]['general parameters']['probe diameter (µm)']] if 'probe diameter (µm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Probe Diameter (µm)', ''], 
+                                    ['Dwell Time (ms)', mapJsonsData[mapNameJson]['general parameters']['dwell time (ms)']] if 'dwell time (ms)' in mapJsonsData[mapNameJson]['general parameters'] else ['Dwell Time (ms)', ''], 
+                                    ['No. of Pixels (x | y)', mapJsonsData[mapNameJson]['general parameters']['number of pixels: x, y'].replace(' ', ' | ')] if 'number of pixels: x, y' in mapJsonsData[mapNameJson]['general parameters'] else ['No. of Pixels (x | y)', ''], 
+                                    ['Pixel Size (µm) (x | y)', ' '.join(mapJsonsData[mapNameJson]['general parameters']['pixel size: x, y (µm)'].split()[:2]).replace(' ', ' | ')] if 'pixel size: x, y (µm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Pixel Size (x | y)', ''], 
+                                    ['Stage Position (mm): Center (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position center (mm)'].replace(' ', ' | ')] if 'stage position center (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Center (x | y | z)', ''], 
+                                    ['Stage Position (mm): Upper left (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position upper left (mm)'].replace(' ', ' | ')] if 'stage position upper left (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Upper left (x | y | z)', ''],  
+                                    ['Stage Position (mm): Upper right (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position upper right (mm)'].replace(' ', ' | ')] if 'stage position upper right (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Upper right (x | y | z)', ''],  
+                                    ['Stage Position (mm): Lower right (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position lower right (mm)'].replace(' ', ' | ')] if 'stage position lower right (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Lower right (x | y | z)', ''],  
+                                    ['Stage Position (mm): Lower left (x | y | z)', mapJsonsData[mapNameJson]['general parameters']['stage position lower left (mm)'].replace(' ', ' | ')] if 'stage position lower left (mm)' in mapJsonsData[mapNameJson]['general parameters'] else ['Stage Position (mm): Lower left (x | y | z)', ''], 
+                                    ['WDS Elements', ', '.join(sorted(mapJsonsData[mapNameJson]['general parameters']['wds elements']))] if 'wds elements' in mapJsonsData[mapNameJson]['general parameters'] else ['WDS Elements', ''], 
+                                    ['EDS Elements', ', '.join(sorted(mapJsonsData[mapNameJson]['general parameters']['eds elements']))] if 'eds elements' in mapJsonsData[mapNameJson]['general parameters'] else ['EDS Elements', '']
                                 ]
                                 
                                 # merge to df
                                 firstCol = []
                                 dataCol = []
-                                for i in range(0,len(mapWDS)):
-                                    firstCol.append(mapWDS[i][0])
-                                    dataCol.append(mapWDS[i][1])
-                                sst.mapWdsData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=wdsElements)
-                                
-                            # 4b13. "EDS Measurement Conditions"
-                            #        -> infos in mapJsonsData
-                            #        -> merged to sst.mapEdsData for map
-                            #####################################################
+                                for i in range(0,len(mapGeneral)):
+                                    firstCol.append(mapGeneral[i][0])
+                                    dataCol.append(mapGeneral[i][1])
+                                sst.mapGeneralData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])
+                        
+                                # 4b12. "WDS Measurement Conditions"
+                                #        -> infos in mapJsonsData
+                                #        -> merged to sst.mapWdsData for map
+                                #####################################################
                             
-                            # get data from jsons if there are eds elements
-                            if 'eds elements' in mapJsonsData[mapNameJson]['general parameters']:
-                            
-                                # get eds elements
-                                edsElements = sorted(mapJsonsData[mapNameJson]['general parameters']['eds elements'])
+                                # get data from jsons if there are wds elements
+                                if 'wds elements' in mapJsonsData[mapNameJson]['general parameters']:
+
+                                    # get wds elements
+                                    wdsElements = sorted(mapJsonsData[mapNameJson]['general parameters']['wds elements'])
+                                    
+                                    # get wds data
+                                    mapWDS = [
+                                        ['Characteristic Line', [mapJsonsData[mapNameJson]['element specific parameters'][element]['characteristic line'] if 'characteristic line' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Characteristic Line', ''] for element in wdsElements]],
+                                        ['Order', [mapJsonsData[mapNameJson]['element specific parameters'][element]['order'] if 'order' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Order', ''] for element in wdsElements]],
+                                        ['Analyser Crystal', [mapJsonsData[mapNameJson]['element specific parameters'][element]['analyser crystal'] if 'analyser crystal' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Analyser Crystal', ''] for element in wdsElements]],
+                                        ['PHA Mode', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA mode'] if 'PHA mode' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Mode', ''] for element in wdsElements]],
+                                        ['PHA Gain', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA gain'] if 'PHA gain' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Gain', ''] for element in wdsElements]],
+                                        ['PHA Base Level (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA base level (V)'] if 'PHA base level (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Base Level (V)', ''] for element in wdsElements]],
+                                        ['PHA Window (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['PHA window (V)'] if 'PHA window (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['PHA Window (V)', ''] for element in wdsElements]],
+                                        ['Detector High V. (V)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['detector HV (V)'] if 'detector HV (V)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Detector High V. (V)', ''] for element in wdsElements]],
+                                        ['Sequence', [mapJsonsData[mapNameJson]['element specific parameters'][element]['sequence'] if 'sequence' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Sequence', ''] for element in wdsElements]],
+                                        ['Spectrometer', [mapJsonsData[mapNameJson]['element specific parameters'][element]['spectrometer'] if 'spectrometer' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Spectrometer', ''] for element in wdsElements]],
+                                        ['Spectrometer radius (mm)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['spectrometer radius (mm)'] if 'spectrometer radius (mm)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Spectrometer radius (mm)', ''] for element in wdsElements]],
+                                        ['Peak (mm)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['peak (mm)'] if 'peak (mm)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Peak (mm)', ''] for element in wdsElements]]
+                                    ]
+                                    
+                                    # merge to df
+                                    firstCol = []
+                                    dataCol = []
+                                    for i in range(0,len(mapWDS)):
+                                        firstCol.append(mapWDS[i][0])
+                                        dataCol.append(mapWDS[i][1])
+                                    sst.mapWdsData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=wdsElements)
+                                    
+                                # 4b13. "EDS Measurement Conditions"
+                                #        -> infos in mapJsonsData
+                                #        -> merged to sst.mapEdsData for map
+                                #####################################################
                                 
-                                # get eds data
-                                mapEDS = [
-                                    ['Characteristic Line', [mapJsonsData[mapNameJson]['element specific parameters'][element]['characteristic line'] if 'characteristic line' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Characteristic Line', ''] for element in edsElements]],
-                                    ['ROI Start (keV)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['ROI start (keV)'] if 'ROI start (keV)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['ROI Start (keV)', ''] for element in edsElements]],
-                                    ['ROI End (keV)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['ROI end (keV)'] if 'ROI end (keV)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['ROI End (keV)', ''] for element in edsElements]],
-                                    ['Sequence', [mapJsonsData[mapNameJson]['element specific parameters'][element]['sequence'] if 'sequence' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Sequence', ''] for element in edsElements]]
-                                ]
+                                # get data from jsons if there are eds elements
+                                if 'eds elements' in mapJsonsData[mapNameJson]['general parameters']:
                                 
-                                ## merge to df
-                                firstCol = []
-                                dataCol = []
-                                for i in range(0,len(mapEDS)):
-                                    firstCol.append(mapEDS[i][0])
-                                    dataCol.append(mapEDS[i][1])
-                                sst.mapEdsData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=edsElements)
+                                    # get eds elements
+                                    edsElements = sorted(mapJsonsData[mapNameJson]['general parameters']['eds elements'])
+                                    
+                                    # get eds data
+                                    mapEDS = [
+                                        ['Characteristic Line', [mapJsonsData[mapNameJson]['element specific parameters'][element]['characteristic line'] if 'characteristic line' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Characteristic Line', ''] for element in edsElements]],
+                                        ['ROI Start (keV)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['ROI start (keV)'] if 'ROI start (keV)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['ROI Start (keV)', ''] for element in edsElements]],
+                                        ['ROI End (keV)', [mapJsonsData[mapNameJson]['element specific parameters'][element]['ROI end (keV)'] if 'ROI end (keV)' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['ROI End (keV)', ''] for element in edsElements]],
+                                        ['Sequence', [mapJsonsData[mapNameJson]['element specific parameters'][element]['sequence'] if 'sequence' in mapJsonsData[mapNameJson]['element specific parameters'][element] else ['Sequence', ''] for element in edsElements]]
+                                    ]
+                                    
+                                    ## merge to df
+                                    firstCol = []
+                                    dataCol = []
+                                    for i in range(0,len(mapEDS)):
+                                        firstCol.append(mapEDS[i][0])
+                                        dataCol.append(mapEDS[i][1])
+                                    sst.mapEdsData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=edsElements)
                     
-                    except:
-                        st.error('An error occurred while processing your ' + mapJsonName + '-file(s), please check them and try again.', icon=':material/sync_problem:')
-                        kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
-                        kadiError = True
-                        st.stop()
+                        except:
+                            st.error('An error occurred while processing your ' + mapJsonName + '-file(s), please check them and try again.', icon=':material/sync_problem:')
+                            kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
+                            kadiError = True
+                            st.stop()
                     
                     
                 ###########################################
@@ -871,68 +873,71 @@ def kadiLoadFiles(parentContainer = False):
                 #     -> Map display settings for Element Maps
                 ################################################
                 
-                if len(mapFilter) > 0:
-                    
-                    st.write('Loading saved map settings ...')
-                    
-                    for i, filterID in enumerate(mapFilter.keys()):
-                        data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + filterID + '/download'))
-                        sst.mapFilter[data['updateTime']] = data
+                if sst.importMaps:
+                    if len(mapFilter) > 0:
+                        
+                        st.write('Loading saved map settings ...')
+                        
+                        for i, filterID in enumerate(mapFilter.keys()):
+                            data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + filterID + '/download'))
+                            sst.mapFilter[data['updateTime']] = data
 
 
                 #######################
                 # 6. load map files 
                 #######################
                 
-                if len(mapFiles) > 0:
-                    # loading progress bar
-                    mapsLoaded = 0
-                    sst.mapData = {}
-                    progressTxt = 'Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'
-                    mapProgress = st.progress(0, text=progressTxt)
-                    for mapId in mapFiles.keys():
-                        parts = mapFiles[mapId].rstrip('.csv').split(' ')
-                        # check length of parts (3 = COMPO, 5 = other)
-                        if len(parts) != 5 and len(parts) != 3:
-                            st.error('Wrong format for map: ' + str(mapFiles[mapId]) + '. Please contact us via mail (see ' + fn.pageNames['help']['ico'] + ' **' + fn.pageNames['help']['name'] + '**).', icon=':material/sync_problem:')
-                            time.sleep(2)
-                        else:
-                            sst.mapData[mapFiles[mapId]] = {
-                                                            'sample': str(parts[1]),
-                                                            'type': str(parts[2]), # EDS, WDS, COMPO
-                                                            'element': (parts[3] if len(parts) > 3 else ''), # not in COMPO
-                                                            'characteristicLine': (parts[4] if len(parts) > 3 else ''), # Ka, La # not in COMPO
-                                                            'imgData': pd.read_csv(
-                                                                    io.StringIO(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + mapId + '/download').decode('utf_8')), header=None, index_col=False, engine='python'
-                                                                    ),
-                                                            }
-                        
-                        mapsLoaded = mapsLoaded + 1
-                        progressTxt = 'Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'                                    
-                        mapPercent = (100/len(mapFiles)*mapsLoaded)/100
-                        mapProgress.progress(mapPercent, text=progressTxt)
+                if sst.importMaps:
+                    if len(mapFiles) > 0:
+                        # loading progress bar
+                        mapsLoaded = 0
+                        sst.mapData = {}
+                        progressTxt = 'Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'
+                        mapProgress = st.progress(0, text=progressTxt)
+                        for mapId in mapFiles.keys():
+                            parts = mapFiles[mapId].rstrip('.csv').split(' ')
+                            # check length of parts (3 = COMPO, 5 = other)
+                            if len(parts) != 5 and len(parts) != 3:
+                                st.error('Wrong format for map: ' + str(mapFiles[mapId]) + '. Please contact us via mail (see ' + fn.pageNames['help']['ico'] + ' **' + fn.pageNames['help']['name'] + '**).', icon=':material/sync_problem:')
+                                time.sleep(2)
+                            else:
+                                sst.mapData[mapFiles[mapId]] = {
+                                                                'sample': str(parts[1]),
+                                                                'type': str(parts[2]), # EDS, WDS, COMPO
+                                                                'element': (parts[3] if len(parts) > 3 else ''), # not in COMPO
+                                                                'characteristicLine': (parts[4] if len(parts) > 3 else ''), # Ka, La # not in COMPO
+                                                                'imgData': pd.read_csv(
+                                                                        io.StringIO(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + mapId + '/download').decode('utf_8')), header=None, index_col=False, engine='python'
+                                                                        ),
+                                                                }
+                            
+                            mapsLoaded = mapsLoaded + 1
+                            progressTxt = 'Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'                                    
+                            mapPercent = (100/len(mapFiles)*mapsLoaded)/100
+                            mapProgress.progress(mapPercent, text=progressTxt)
                 
 
                 ########################
                 # 7. load image files 
                 ########################
                 
-                if len(imageFiles) >= 0:
-                    # loading progress bar
-                    imgLoaded = 0
-                    progressTxt = 'Loading image data, this may take a while ... (' + str(imgLoaded) + '/' + str(len(imageFiles)) + ' loaded)'
-                    imgProgress = st.progress(0, text=progressTxt)
-                    for imageId in imageFiles.keys():
-                        if '.tif' in imageFiles[imageId] or '.tiff' in imageFiles[imageId]:
-                            sst.imageData = sst.imageData + [[imageId, tiff.imread(io.BytesIO(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + imageId + '/download')))]]
-                        elif '.jpg' in imageFiles[imageId] or '.jpeg' in imageFiles[imageId]:
-                            sst.imageData = sst.imageData + [[imageId, Image.open(io.BytesIO(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + imageId + '/download')))]]
-                        
-                        imgLoaded = imgLoaded + 1
-                        progressTxt = 'Loading image data, this may take a while ... (' + str(imgLoaded) + '/' + str(len(imageFiles)) + ' loaded)'                                    
-                        imgPercent = (100/len(imageFiles)*imgLoaded)/100
-                        imgProgress.progress(imgPercent, text=progressTxt)
-                    sst.imageFiles = imageFiles
+                if sst.importImages:
+                    if len(imageFiles) >= 0:
+                        # loading progress bar
+                        imgLoaded = 0
+                        progressTxt = 'Loading image data, this may take a while ... (' + str(imgLoaded) + '/' + str(len(imageFiles)) + ' loaded)'
+                        imgProgress = st.progress(0, text=progressTxt)
+                        for imageId in imageFiles.keys():
+                            if '.tif' in imageFiles[imageId] or '.tiff' in imageFiles[imageId]:
+                                sst.imageData = sst.imageData + [[imageId, tiff.imread(io.BytesIO(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + imageId + '/download')))]]
+                            elif '.jpg' in imageFiles[imageId] or '.jpeg' in imageFiles[imageId]:
+                                sst.imageData = sst.imageData + [[imageId, Image.open(io.BytesIO(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + imageId + '/download')))]]
+                            
+                            imgLoaded = imgLoaded + 1
+                            progressTxt = 'Loading image data, this may take a while ... (' + str(imgLoaded) + '/' + str(len(imageFiles)) + ' loaded)'                                    
+                            imgPercent = (100/len(imageFiles)*imgLoaded)/100
+                            imgProgress.progress(imgPercent, text=progressTxt)
+                        sst.imageFiles = imageFiles
                 
                 
                 ################

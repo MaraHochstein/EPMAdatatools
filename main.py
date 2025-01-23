@@ -74,7 +74,7 @@ st.title('Welcome to EPMA Data Tools', anchor=False)
 # Info
 st.header('What is EPMA Data Tools?', anchor=False)
 st.write('The tool helps to process raw data from an EPMA (Electron Probe Microanalyzer), merges several files into one standardised output file and makes it possible to perform various analyses such as filtering, mineral formula calculation and data visualisation.')
-st.info('Note: The tool is currently limited to data processing from the EPMA "JEOL JXA-8530F Plus Hyperprobe". Integration of other EPMA models may be added in the future.')
+st.info('Note: The tool is currently limited to data processing from the [:primary-background[:material/link: EPMA "JEOL JXA-8530F Plus Hyperprobe"]](https://www.uni-frankfurt.de/76769378/Mikrosonde___Information_f%C3%BCr_Benutzer) at Goethe University Frankfurt. Integration of other EPMA models may be added in the future.')
 st.divider()
 
 col1, col2, col3 = st.columns(3)
