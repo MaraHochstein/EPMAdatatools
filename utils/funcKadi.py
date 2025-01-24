@@ -144,7 +144,7 @@ def kadiLoadFiles(parentContainer = False):
                 # Init & Clean
                 ################
                 # clear from previous upload (if upload was only partly successful)
-                sstVars = ['kadiLoaded', 'kadiMetaData', 'condElements', 'condInfos', 'condMapInfos', 'condSamples', 'condMapSamples', 'condStd', 'methodGeneralData', 'methodSampleData', 'methodStdData', 'shortMeasCond', 'standardsXlsx', 'standardsXlsxExport', 'csvMerged', 'kadiFilter', 'imageData', 'imageFiles', 'mapData', 'mapFilter', 'mapGeneralData', 'mapWdsData', 'mapEdsData']
+                sstVars = ['kadiLoaded', 'kadiMetaData', 'condElements', 'condInfos', 'condMapInfos', 'condSamples', 'condMapSamples', 'condStd', 'methodGeneralData', 'methodSampleData', 'methodStdData', 'shortMeasCond', 'standardsXlsx', 'standardsXlsxExport', 'csvMerged', 'kadiFilter', 'imageData', 'imageFiles', 'mapData', 'mapFilter', 'mapGeneralData', 'mapWdsData', 'mapEdsData', 'qualiConditions', 'methodQualiGeneralData', 'qualiSpectra', 'methodQualiSpecData', 'qualitativeSpectraXlsx']
                 for var in sstVars:
                     fn.resetVar(var)
                 
@@ -168,6 +168,14 @@ def kadiLoadFiles(parentContainer = False):
                 standardsXlsxFile = {}
                 standardsXlsxData = ''
                 standardsXlsxName = 'standards.xlsx'
+                
+                qualiSpectraXlsxFile = {}
+                qualiSpectraXlsxData = ''
+                qualiSpectraXlsxName = 'qualitative spectra.xlsx'
+                
+                qualiSpectraQuickFile = {}
+                qualiSpectraQuickData = ''
+                qualiSpectraQuickName = 'quick standard quali.txt'
                 
                 mapJsons = {}
                 mapJsonsData = {}
@@ -231,6 +239,12 @@ def kadiLoadFiles(parentContainer = False):
                         # standards.xlsx
                         elif item['mimetype'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and item['name'] == standardsXlsxName:
                             standardsXlsxFile[item['id']] = item['name']
+                        # qualitative spectra.xlsx
+                        elif item['mimetype'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and item['name'] == qualiSpectraXlsxName:
+                            qualiSpectraXlsxFile[item['id']] = item['name']
+                        # quick standard quali.txt
+                        elif qualiSpectraQuickName in item['name'] and item['mimetype'] == 'text/plain':
+                            qualiSpectraQuickFile[item['id']] = item['name']
                         # map parameter jsons
                         elif item['name'].startswith('map ') and item['mimetype'] == 'application/json' and sst.importMaps:
                             mapJsons[item['id']] = item['name']                        
@@ -262,10 +276,20 @@ def kadiLoadFiles(parentContainer = False):
                 
                 # 2a. optional files for all measurement types
                 # - standards.xlsx
+                # - qualitative spectra.xlsx
+                # - quick standard quali.txt
                 #################################################
                 if len(standardsXlsxFile) > 1:
                     doubleFiles.append(standardsXlsxName + '-file')
                     doubleFileNames.append(' / '.join(standardsXlsxFile.values()))
+                
+                if len(qualiSpectraXlsxFile) > 1:
+                    doubleFiles.append(qualiSpectraXlsxName + '-file')
+                    doubleFileNames.append(' / '.join(qualiSpectraXlsxFile.values()))
+                    
+                if len(qualiSpectraQuickFile) > 1:
+                    doubleFiles.append(qualiSpectraQuickName + '-file')
+                    doubleFileNames.append(' / '.join(qualiSpectraQuickFile.values()))
                 
                 # 2b. QUANT (or MAPS + QUANT)
                 # - summary[timestamp].csv
@@ -343,6 +367,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - 3a. optional files for all measurement types
                 # - 3b. QUANT (or MAPS + QUANT)
                 # - 3c. MAPS ONLY
+                # - 3d. QUALITATIVE SPECTRA
                 # - 3end. check if all contain data -> else error & stop
                 ###########################################################
                 
@@ -517,7 +542,40 @@ def kadiLoadFiles(parentContainer = False):
                                 mapJsonsData[mapJsons[mapJsonID].rstrip('.json')] = data
                             else:
                                 invalidFiles.append(mapJsonName + '-file(s)')
+                
+                # 3d. QUALITATIVE SPECTRA
+                # - 3d1. xlsx
+                # - 3d2. quick standard quali
+                #################################
+                
+                if len(qualiSpectraXlsxFile) == 1:
                     
+                    # 3d1. load qualitative spectra.xlsx
+                    ###########################################
+                    content = kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + list(qualiSpectraXlsxFile.keys())[0] + '/download')
+                    # use bytesIO for decoding xlsx format
+                    xlsxData = io.BytesIO(content)
+                    xlsxWb = openpyxl.load_workbook(xlsxData, data_only=True)
+                    
+                    # for every sheet (if multiple measurements)
+                    for sheet in xlsxWb.sheetnames:
+                        # get sheet
+                        xlsxSheet = xlsxWb[sheet]
+                        # convert sheet to pd.df
+                        xlsxDf = pd.DataFrame(xlsxSheet.values)
+                        # set first row as header row (transpose, set index, transpose back is shortest)
+                        xlsxDf = xlsxDf.T.set_index(xlsxDf.columns[0]).T
+                        # save in sst                            
+                        sst.qualitativeSpectraXlsx[sheet] = xlsxDf
+
+                    # 3d2. load quick standard quali.txt
+                    ###########################################
+                    content = kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + list(qualiSpectraQuickFile.keys())[0] + '/download').decode('utf_8')            
+                    if len(content) > 2: # text-file contains something
+                        qualiSpectraQuickData = content
+                    else:
+                        invalidFiles.append(qualiSpectraQuickName + '-file')
+                
                     
                 # 3end. check if all raw files contain data for merging
                 #########################################################
@@ -531,7 +589,8 @@ def kadiLoadFiles(parentContainer = False):
                 ###################################
                 # 4. merge files
                 # - 4a. QUANT (or MAPS + QUANT)
-                # - 4b. MAPS ONLY
+                # - 4b. QUALITATIVE SPECTRA
+                # - 4c. MAPS ONLY
                 ###################################
                 
                 st.write('Merging files ...')
@@ -732,24 +791,95 @@ def kadiLoadFiles(parentContainer = False):
                         st.stop()
                 
                 
-                # 4b. MAPS ONLY
+                # 4b. QUALITATIVE SPECTRA
+                # - 4b1. "General Information" (qualiSpectraQuickData -> sst.methodQualiGeneralData)
+                # - 4b2. "Spectrometer Conditions" (qualiSpectraQuickData -> sst.methodQualiSpecData)
+                ##########################################################################################
+                
+                if len(qualiSpectraQuickFile) == 1:
+                    
+                    try:
+                        # 4b1. "General Information"
+                        #        -> infos in qualiSpectraQuickData
+                        #        -> merged to sst.methodQualiGeneralData
+                        ####################################################
+                        
+                        # find values in txt
+                        sst.qualiConditions = ['General Information', 
+                            ['Type', re.search(r'Type\s*?:\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData).group(1).strip()] if re.search(r'Type\s*?:\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData) != None else ['Type', ''], 
+                            ['Saved Path', re.search(r'Saved Path: (.*)(?:\n|\r\n?)', qualiSpectraQuickData).group(1).strip()] if re.search(r'Saved Path: (.*)(?:\n|\r\n?)', qualiSpectraQuickData) != None else ['Saved Path', ''], 
+                            ['Project', re.search(r'Project\s*?:\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData).group(1).strip()] if re.search(r'Project\s*?:\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData) != None else ['Project', ''], 
+                            ['Comment', re.search(r'Comment\s*?:\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData).group(1).strip()] if re.search(r'Comment\s*?:\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData) != None else ['Comment', ''], 
+                            ['Accelerating Voltage (kV)', re.search(r'Accv:\s*?(.*)\s*?kV(?:\n|\r\n?)', qualiSpectraQuickData).group(1).strip()] if re.search(r'Accv:\s*?(.*)\s*?kV(?:\n|\r\n?)', qualiSpectraQuickData) != None else ['Accelerating Voltage (kV)', ''],
+                            ['Target Probe Current (nA)', round((float(re.search(r'Target Probe Curr.:\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData).group(1))/float('1.0e-09')),3)] if re.search(r'Target Probe Curr.:\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData) != None else ['Target Probe Current (nA)', ''],
+                            ['No. of Positions', re.search(r'No. of Positions\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData).group(1).strip()] if re.search(r'No. of Positions\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData) != None else ['No. of Positions', ''],
+                            ['No. of Spectra', re.search(r'No. of Spect =\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData).group(1).strip()] if re.search(r'No. of Spect =\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData) != None else ['No. of Spectra', '']
+                            ]
+                        
+                        # merge to df (sst.methodQualiGeneralData)
+                        firstCol = []
+                        dataCol = []
+                        for i in range(1,len(sst.qualiConditions)):
+                            firstCol.append(sst.qualiConditions[i][0])
+                            dataCol.append(sst.qualiConditions[i][1])
+                        sst.methodQualiGeneralData = pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])
+                        
+                        # 4b2. "Spectrometer Conditions"
+                        #        -> infos in qualiSpectraQuickData
+                        #        -> merged to sst.methodQualiSpecData
+                        ####################################################
+                        
+                        # find values in txt
+                        sst.qualiSpectra = ['Spectrometer Conditions',
+                            ['Channel', ' '.join(re.findall(r'(?s)Channel\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['Crystal', ' '.join(re.findall(r'(?s)Crystal\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['Start (mm)', ' '.join(re.findall(r'(?s)Start\s*?\(mm\)\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['End (mm)', ' '.join(re.findall(r'(?s)End\s*?\(mm\)\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['Dwell time (ms)', ' '.join(re.findall(r'(?s)Dwell\s*?\(ms\)\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['PHA gain', ' '.join(re.findall(r'(?s)PHA Gain\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['High V. (V)', ' '.join(re.findall(r'(?s)High V\.\(V\)\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['Base L. (V)', ' '.join(re.findall(r'(?s)Base L\.\(V\)\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['Window (V)', ' '.join(re.findall(r'(?s)Window \(V\)\s*?(.*?)(?:\n|\r\n?)', qualiSpectraQuickData)).split()],
+                            ['Diff/Int', ' '.join(re.findall(r'(?s)Diff/Int\s*?(.*?)(?=\r?\n|$)', qualiSpectraQuickData)).split()]
+                            ]
+
+                        
+                        
+                        # merge to df (sst.methodQualiSpecData)
+                        firstCol = []
+                        dataCol = []
+                        for i in range(1,len(sst.qualiSpectra)):
+                            firstCol.append(sst.qualiSpectra[i][0])
+                            dataCol.append(sst.qualiSpectra[i][1])
+                            
+                        sst.methodQualiSpecData = pd.DataFrame(data=dataCol, index=firstCol, columns=[f"Spec. {i}" for i in range(1, int(re.search(r'No. of Spect =\s*?(.*)(?:\n|\r\n?)', qualiSpectraQuickData).group(1).strip()) + 1)])
+
+                        
+                    except:
+                        st.error('An error occurred while merging data from your ' + qualiSpectraQuickName + '-file, please check them and try again.', icon=':material/sync_problem:')
+                        kadiStatus.update(label='Something went wrong, please read the corresponding error message for details.', state='error', expanded=True)
+                        kadiError = True
+                        st.stop()
+                
+                
+                # 4c. MAPS ONLY
                 # -> infos in json
                 ####################################################
                 
                 if sst.importMaps:
                     if len(mapFiles) > 0 and len(mapJsonsData) > 0:
                     
-                        # 4b1. Map Conditions:
-                        # - 4b11. "General Parameters" (mapJsonsData -> sst.mapGeneralData)
-                        # - 4b12. "WDS Measurement Conditions" (mapJsonsData -> sst.mapWdsData)
-                        # - 4b13. "EDS Measurement Conditions" (mapJsonsData -> sst.mapEdsData)
+                        # 4c1. Map Conditions:
+                        # - 4c11. "General Parameters" (mapJsonsData -> sst.mapGeneralData)
+                        # - 4c12. "WDS Measurement Conditions" (mapJsonsData -> sst.mapWdsData)
+                        # - 4c13. "EDS Measurement Conditions" (mapJsonsData -> sst.mapEdsData)
                         ###########################################################################
                         
                         try:                   
                             # for every map
                             for mapNameJson in mapJsonsData.keys():
                             
-                                # 4b11. "General Information"
+                                # 4c11. "General Information"
                                 #        -> infos in mapJsonsData
                                 #        -> merged to sst.mapGeneralData for map
                                 #########################################################
@@ -784,7 +914,7 @@ def kadiLoadFiles(parentContainer = False):
                                     dataCol.append(mapGeneral[i][1])
                                 sst.mapGeneralData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])
                         
-                                # 4b12. "WDS Measurement Conditions"
+                                # 4c12. "WDS Measurement Conditions"
                                 #        -> infos in mapJsonsData
                                 #        -> merged to sst.mapWdsData for map
                                 #####################################################
@@ -819,7 +949,7 @@ def kadiLoadFiles(parentContainer = False):
                                         dataCol.append(mapWDS[i][1])
                                     sst.mapWdsData[mapNameJson] = pd.DataFrame(data=dataCol, index=firstCol, columns=wdsElements)
                                     
-                                # 4b13. "EDS Measurement Conditions"
+                                # 4c13. "EDS Measurement Conditions"
                                 #        -> infos in mapJsonsData
                                 #        -> merged to sst.mapEdsData for map
                                 #####################################################

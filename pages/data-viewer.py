@@ -309,7 +309,7 @@ st.title('Data Viewer', anchor=False)
 if not sst.kadiLoaded:
     st.info('Please import your EPMA data in **' + fn.pageNames['import']['name'] + '** in the sidebar menu.', icon=fn.pageNames['import']['ico'])
 else:
-    tab1, tab2, tab3, tab4 = st.tabs([':material/filter_alt: Data Filter', ':material/photo_library: Images', ':material/stylus_note: Method Section', ':material/blur_on: Element Maps'])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([':material/filter_alt: Data Filter', ':material/ssid_chart: Qualitative Spectra', ':material/photo_library: Images', ':material/stylus_note: Method Section', ':material/blur_on: Element Maps'])
 
     with tab1:
         ################
@@ -349,8 +349,23 @@ else:
         else:
             st.info('This record contains no measurement files.', icon=':material/visibility_off:')
         
-
     with tab2:
+        #########################
+        # Qualitative Spectra
+        #########################
+        if sst.qualitativeSpectraXlsx == {}:
+            st.info('No qualitative spectra found in this record.', icon=':material/visibility_off:')
+        else:
+            for sheet in sst.qualitativeSpectraXlsx.keys():
+                st.subheader(sheet, anchor=False)
+                st.line_chart(
+                    sst.qualitativeSpectraXlsx[sheet],
+                    x = sst.qualitativeSpectraXlsx[sheet].columns[0],
+                    y = sst.qualitativeSpectraXlsx[sheet].columns[1:]
+                )
+                st.write('')
+    
+    with tab3:
         ################
         # Images
         ################
@@ -375,24 +390,24 @@ else:
         else:
             st.info('This record contains no image data.', icon=':material/visibility_off:')
 
-    with tab3:
+    with tab4:
         ################
         # Methods
         ################
         # different tabs for different datatypes
-        tab3a, tab3b, tab3c, tab3d = st.tabs([':material/labs: Quantitative Conditions', ':material/blur_on: Map Conditions', ':material/database: Kadi Metadata', ':material/stylus_note: Method Writeup'])
+        tab4a, tab4b, tab4c, tab4d, tab4e = st.tabs([':material/labs: Quantitative Conditions', ':material/ssid_chart: Qualitative Spectra', ':material/blur_on: Map Conditions', ':material/database: Kadi Metadata', ':material/stylus_note: Method Writeup'])
         
         # Quantitative Conditions
-        with tab3a: 
+        with tab4a: 
             st.subheader('Quantitative Measurement Conditions', anchor=False)
             
             if sst.shortMeasCond == {} and sst.standardsXlsx == {} and sst.methodGeneralData.empty and sst.methodSampleData.empty and sst.methodStdData.empty:
                 st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
             else:
-                tab3a1, tab3a2, tab3a3 = st.tabs([':material/compress: Compact Conditions', ':material/labs: Standard Details', ':material/expand: Full Conditions']) 
+                tab4a1, tab4a2, tab4a3 = st.tabs([':material/compress: Compact Conditions', ':material/labs: Standard Details', ':material/expand: Full Conditions']) 
                 
                 # Compact
-                with tab3a1: 
+                with tab4a1: 
                     st.subheader('Compact Measurement Conditions', anchor=False)
                     if sst.shortMeasCond == {}:
                         st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
@@ -403,7 +418,7 @@ else:
                         st.dataframe(sst.shortMeasCond[1], hide_index=1, use_container_width=1)
                 
                 # Standards.xlsx
-                with tab3a2:                    
+                with tab4a2:                    
                     if sst.standardsXlsx == {}:
                         st.info('No standard data found in this record.', icon=':material/visibility_off:')
                     else:
@@ -412,7 +427,7 @@ else:
                             st.dataframe(sst.standardsXlsx[sheet], use_container_width=1)
                         
                 # Full    
-                with tab3a3:
+                with tab4a3:
                     st.subheader('Full Measurement Conditions', anchor=False)
                     if sst.methodGeneralData.empty or sst.methodSampleData.empty or sst.methodStdData.empty:
                         st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
@@ -426,8 +441,23 @@ else:
                         st.subheader('Standard Data', anchor=False)
                         st.table(sst.methodStdData)
         
+        # Qualitative Spectra
+        with tab4b:
+            st.subheader('Qualitative Spectra Conditions', anchor=False)
+            if sst.qualitativeSpectraXlsx == {} or sst.methodQualiGeneralData.empty or sst.methodQualiSpecData.empty:
+                st.info('No qualitative spectra measurement conditions found in this record.', icon=':material/visibility_off:')
+            else:
+                st.subheader('General Information', anchor=False)
+                left, right = st.columns((1,1))
+                with left:
+                    st.table(sst.methodQualiGeneralData)
+                
+                st.subheader('Spectrometer Conditions', anchor=False)
+                st.table(sst.methodQualiSpecData)
+        
+        
         # Map Conditions
-        with tab3b: 
+        with tab4c: 
             st.subheader('Map Measurement Conditions', anchor=False)
             
             if sst.mapGeneralData == {}:
@@ -457,12 +487,12 @@ else:
                             st.table(sst.mapEdsData[mapNameJson])
         
         # Kadi Metadata    
-        with tab3c:
+        with tab4d:
             st.subheader('Kadi Metadata', anchor=False)
             st.table(sst.kadiMetaData)
         
         # Method Writeup
-        with tab3d: 
+        with tab4e: 
             if sst.condInfos != {}:
                 if 'Quantitative Analysis' in sst.condInfos[1][1]:
                     st.subheader('Standard Condition Writeup', anchor=False)
@@ -502,7 +532,7 @@ else:
             #    st.markdown('Höfer et al. (1994): https://doi.org/10.1127/ejm/6/3/0407')
             #    st.markdown('Höfer & Brey (2007): https://doi.org/10.2138/am.2007.2390')
             
-    with tab4:
+    with tab5:
         ################
         # Element Maps
         ################

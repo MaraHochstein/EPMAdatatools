@@ -34,13 +34,19 @@ variableList = [
     ['condSamples', {}],
     ['condMapSamples', {}],
     ['condStd', {}],
+    ['qualiConditions', {}],
+    ['qualiSpectra', {}],
     ['methodGeneralData', pd.DataFrame()],
     ['methodSampleData', pd.DataFrame()],
     ['methodStdData', pd.DataFrame()],
+    ['methodQualiGeneralData', pd.DataFrame()],
+    ['methodQualiSpecData', pd.DataFrame()],
     ['shortMeasCond', dict()],
     
     ['standardsXlsx', dict()],
     ['standardsXlsxExport', {}],
+    
+    ['qualitativeSpectraXlsx', dict()],
     
     ['kadiFilter', {}],
     ['dataViewerFilter', dict()],
