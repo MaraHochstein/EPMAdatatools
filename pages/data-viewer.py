@@ -309,7 +309,7 @@ st.title('Data Viewer', anchor=False)
 if not sst.kadiLoaded:
     st.info('Please import your EPMA data in **' + fn.pageNames['import']['name'] + '** in the sidebar menu.', icon=fn.pageNames['import']['ico'])
 else:
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([':material/filter_alt: Data Filter', ':material/ssid_chart: Qualitative Spectra', ':material/photo_library: Images', ':material/stylus_note: Method Section', ':material/blur_on: Element Maps'])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([':material/filter_alt: Data Filter', ':material/photo_library: Images', ':material/stylus_note: Method Section', ':material/blur_on: Element Maps', ':material/ssid_chart: Qualitative Spectra'])
 
     with tab1:
         ################
@@ -349,23 +349,8 @@ else:
         else:
             st.info('This record contains no measurement files.', icon=':material/visibility_off:')
         
-    with tab2:
-        #########################
-        # Qualitative Spectra
-        #########################
-        if sst.qualitativeSpectraXlsx == {}:
-            st.info('No qualitative spectra found in this record.', icon=':material/visibility_off:')
-        else:
-            for sheet in sst.qualitativeSpectraXlsx.keys():
-                st.subheader(sheet, anchor=False)
-                st.line_chart(
-                    sst.qualitativeSpectraXlsx[sheet],
-                    x = sst.qualitativeSpectraXlsx[sheet].columns[0],
-                    y = sst.qualitativeSpectraXlsx[sheet].columns[1:]
-                )
-                st.write('')
     
-    with tab3:
+    with tab2:
         ################
         # Images
         ################
@@ -390,24 +375,24 @@ else:
         else:
             st.info('This record contains no image data.', icon=':material/visibility_off:')
 
-    with tab4:
+    with tab3:
         ################
         # Methods
         ################
         # different tabs for different datatypes
-        tab4a, tab4b, tab4c, tab4d, tab4e = st.tabs([':material/labs: Quantitative Conditions', ':material/ssid_chart: Qualitative Spectra', ':material/blur_on: Map Conditions', ':material/database: Kadi Metadata', ':material/stylus_note: Method Writeup'])
+        tab3a, tab3b, tab3c, tab3d, tab3e = st.tabs([':material/labs: Quantitative Conditions', ':material/blur_on: Map Conditions', ':material/database: Kadi Metadata', ':material/stylus_note: Method Writeup', ':material/ssid_chart: Qualitative Spectra'])
         
         # Quantitative Conditions
-        with tab4a: 
+        with tab3a: 
             st.subheader('Quantitative Measurement Conditions', anchor=False)
             
             if sst.shortMeasCond == {} and sst.standardsXlsx == {} and sst.methodGeneralData.empty and sst.methodSampleData.empty and sst.methodStdData.empty:
                 st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
             else:
-                tab4a1, tab4a2, tab4a3 = st.tabs([':material/compress: Compact Conditions', ':material/labs: Standard Details', ':material/expand: Full Conditions']) 
+                tab3a1, tab3a2, tab3a3 = st.tabs([':material/compress: Compact Conditions', ':material/labs: Standard Details', ':material/expand: Full Conditions']) 
                 
                 # Compact
-                with tab4a1: 
+                with tab3a1: 
                     st.subheader('Compact Measurement Conditions', anchor=False)
                     if sst.shortMeasCond == {}:
                         st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
@@ -418,7 +403,7 @@ else:
                         st.dataframe(sst.shortMeasCond[1], hide_index=1, use_container_width=1)
                 
                 # Standards.xlsx
-                with tab4a2:                    
+                with tab3a2:                    
                     if sst.standardsXlsx == {}:
                         st.info('No standard data found in this record.', icon=':material/visibility_off:')
                     else:
@@ -427,7 +412,7 @@ else:
                             st.dataframe(sst.standardsXlsx[sheet], use_container_width=1)
                         
                 # Full    
-                with tab4a3:
+                with tab3a3:
                     st.subheader('Full Measurement Conditions', anchor=False)
                     if sst.methodGeneralData.empty or sst.methodSampleData.empty or sst.methodStdData.empty:
                         st.info('No quantitative measurement conditions found in this record.', icon=':material/visibility_off:')
@@ -439,25 +424,10 @@ else:
                         st.table(sst.methodSampleData)
                         
                         st.subheader('Standard Data', anchor=False)
-                        st.table(sst.methodStdData)
-        
-        # Qualitative Spectra
-        with tab4b:
-            st.subheader('Qualitative Spectra Conditions', anchor=False)
-            if sst.qualitativeSpectraXlsx == {} or sst.methodQualiGeneralData.empty or sst.methodQualiSpecData.empty:
-                st.info('No qualitative spectra measurement conditions found in this record.', icon=':material/visibility_off:')
-            else:
-                st.subheader('General Information', anchor=False)
-                left, right = st.columns((1,1))
-                with left:
-                    st.table(sst.methodQualiGeneralData)
-                
-                st.subheader('Spectrometer Conditions', anchor=False)
-                st.table(sst.methodQualiSpecData)
-        
+                        st.table(sst.methodStdData)        
         
         # Map Conditions
-        with tab4c: 
+        with tab3b: 
             st.subheader('Map Measurement Conditions', anchor=False)
             
             if sst.mapGeneralData == {}:
@@ -487,12 +457,12 @@ else:
                             st.table(sst.mapEdsData[mapNameJson])
         
         # Kadi Metadata    
-        with tab4d:
+        with tab3c:
             st.subheader('Kadi Metadata', anchor=False)
             st.table(sst.kadiMetaData)
         
         # Method Writeup
-        with tab4e: 
+        with tab3d: 
             if sst.condInfos != {}:
                 if 'Quantitative Analysis' in sst.condInfos[1][1]:
                     st.subheader('Standard Condition Writeup', anchor=False)
@@ -507,9 +477,7 @@ else:
                     
                     st.write('Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to :primary-background[' + str(sst.condInfos[5][1]) + ' kV] with a beam current of :primary-background[' + str(sst.condInfos[6][1]) + ' nA]. The following elements were measured: :primary-background[' + ', '.join(sst.condElements[1]) + ']. The spot analyses were performed with a focused beam of :primary-background[' + str(sst.shortMeasCond[0].loc["Spotsizes used (μm)"].values[0]) + ' µm] diameter. Peak measurement times were between :primary-background[' + str(min(mins)) + ' and ' + str(max(maxs)) + ' s], and backgrounds were measured with half peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in :primary-background[' + sst.condInfos[8][1] + ' correction] was applied (RR). The standards were calibrated to <1 rel%.')
                     # download text
-                    st.download_button('Download text as .txt-file', 'Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to ' + str(sst.condInfos[5][1]) + ' kV with a beam current of ' + str(sst.condInfos[6][1]) + ' nA. '\
-                                        'The following elements were measured: ' + ', '.join(sst.condElements[1]) + '. The spot analyses were performed with a focused beam of ' + str(sst.shortMeasCond[0].loc["Spotsizes used (μm)"].values[0]) + ' µm diameter. Peak measurement times were between ' + str(min(mins)) + ' and ' + str(max(maxs)) + ' s, and backgrounds were measured with '\
-                                        'half peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in ' + sst.condInfos[8][1] + ' correction was applied (RR). The standards were calibrated to <1 rel%.'
+                    st.download_button('Download text as .txt-file', 'Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to ' + str(sst.condInfos[5][1]) + ' kV with a beam current of ' + str(sst.condInfos[6][1]) + ' nA. The following elements were measured: ' + ', '.join(sst.condElements[1]) + '. The spot analyses were performed with a focused beam of ' + str(sst.shortMeasCond[0].loc["Spotsizes used (μm)"].values[0]) + ' µm diameter. Peak measurement times were between ' + str(min(mins)) + ' and ' + str(max(maxs)) + ' s, and backgrounds were measured with half peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in ' + sst.condInfos[8][1] + ' correction was applied (RR). The standards were calibrated to <1 rel%.'
                                         , file_name='standard-condition-writeup.txt', mime='text/plain'
                                       )
                     st.divider()
@@ -520,19 +488,29 @@ else:
                 
             # Flank Method
             #with tab3d2:
-            #    st.write('The atomic $Fe^{3+}/Fe_{tot}$ proportions in garnets were determined with the flank method as developed and refined by Höfer et al. (1994) and Höfer and Brey (2007). Measurements were conducted with a JEOL'\
-            #                'JXA-8530F Plus electron microprobe at the Institute für Geowissenschaften, GU Frankfurt am Main. The flank method and the quantitative elemental analyses were simultaneously conducted using WDS at 15 kV and 120 nA, with '\
-            #                'a beam diameter of 1 μm. Two spectrometers with TAPL crystals for high intensities and the smallest detector slit (300 μm) were used, with 100 s counting time for $FeL_{α}$ and $FeL_{β}$. The $Fe^{3+}/Fe_{tot}$ of garnets were '\
-            #                'determined by applying the correction for self-absorption using natural and synthetic garnets with variable total $Fe$ and $Fe^{3+}/Fe_{tot}$ known from Mössbauer ›milliprobe‹ (Höfer and Brey, 2007). The remaining 3 '\
-            #                'spectrometers carried out the simultaneous elemental analyses of $Si$, $Ti$, $Al$, $Cr$, $Fe$, $Mn$, $Ni$, $Mg$, $Ca$, $Na$, $K$ and $P$. Appropriate silicates (pyrope ($Mg$, $Al$, $Si$), albite ($Na$), $CaSiO_{3}$ ($Ca$)), phosphate ($KTiOPO_{4}$ ($Ti$, $K$, $P$)), '\
-            #                'and metals or metal oxides (iron metal ($Fe$), $NiO$ ($Ni$), $MnTiO_{3}$ ($Mn$), $Cr_{2}O_{3}$ ($Cr$)) were used as standards, and a PRZ routine was used for the matrix correction. The uncertainty in $Fe^{3+}/Fe_{tot}$ analyses is about ± '\
-            #                '0.01 (1σ), while garnets with higher $FeO$ have smaller errors than garnets with lower $FeO$.')
+            #    st.write('The atomic $Fe^{3+}/Fe_{tot}$ proportions in garnets were determined with the flank method as developed and refined by Höfer et al. (1994) and Höfer and Brey (2007). Measurements were conducted with a JEOL JXA-8530F Plus electron microprobe at the Institute für Geowissenschaften, GU Frankfurt am Main. The flank method and the quantitative elemental analyses were simultaneously conducted using WDS at 15 kV and 120 nA, with a beam diameter of 1 μm. Two spectrometers with TAPL crystals for high intensities and the smallest detector slit (300 μm) were used, with 100 s counting time for $FeL_{α}$ and $FeL_{β}$. The $Fe^{3+}/Fe_{tot}$ of garnets were determined by applying the correction for self-absorption using natural and synthetic garnets with variable total $Fe$ and $Fe^{3+}/Fe_{tot}$ known from Mössbauer ›milliprobe‹ (Höfer and Brey, 2007). The remaining 3 spectrometers carried out the simultaneous elemental analyses of $Si$, $Ti$, $Al$, $Cr$, $Fe$, $Mn$, $Ni$, $Mg$, $Ca$, $Na$, $K$ and $P$. Appropriate silicates (pyrope ($Mg$, $Al$, $Si$), albite ($Na$), $CaSiO_{3}$ ($Ca$)), phosphate ($KTiOPO_{4}$ ($Ti$, $K$, $P$)), and metals or metal oxides (iron metal ($Fe$), $NiO$ ($Ni$), $MnTiO_{3}$ ($Mn$), $Cr_{2}O_{3}$ ($Cr$)) were used as standards, and a PRZ routine was used for the matrix correction. The uncertainty in $Fe^{3+}/Fe_{tot}$ analyses is about ± 0.01 (1σ), while garnets with higher $FeO$ have smaller errors than garnets with lower $FeO$.')
             #    st.divider()
             #    st.subheader('References', anchor=False)
             #    st.markdown('Höfer et al. (1994): https://doi.org/10.1127/ejm/6/3/0407')
             #    st.markdown('Höfer & Brey (2007): https://doi.org/10.2138/am.2007.2390')
-            
-    with tab5:
+        
+        
+        # Qualitative Spectra
+        with tab3e:
+            st.subheader('Qualitative Spectra Conditions', anchor=False)
+            if sst.qualitativeSpectraXlsx == {} or sst.methodQualiGeneralData.empty or sst.methodQualiSpecData.empty:
+                st.info('No qualitative spectra measurement conditions found in this record.', icon=':material/visibility_off:')
+            else:
+                st.subheader('General Information', anchor=False)
+                left, right = st.columns((1,1))
+                with left:
+                    st.table(sst.methodQualiGeneralData)
+                
+                st.subheader('Spectrometer Conditions', anchor=False)
+                st.table(sst.methodQualiSpecData)
+
+        
+    with tab4:
         ################
         # Element Maps
         ################
@@ -590,7 +568,13 @@ else:
                     selectedTransition = st.pills('Measured characteristic X-ray transition lines:', sorted({val['characteristicLine'] for val in sst.mapData.values() if val['characteristicLine'] != ''}), default=sorted({val['characteristicLine'] for val in sst.mapData.values() if val['characteristicLine'] != ''})[0], help='Select one or multiple measured characteristic X-ray transition lines', label_visibility='visible', selection_mode='multi', on_change=resetMapEdit)
                     
             # filter maps by selected values
-            filteredMaps = filterMaps(sst.mapData, selectedElements, selectedTransition, selectedSet, selectedType)
+            if selectedSet != None:
+                filteredMaps = filterMaps(sst.mapData, selectedElements, selectedTransition, selectedSet, selectedType)
+            else:
+                filteredMaps = {}
+                
+               
+            
             
             # user colorbar
             ################
@@ -806,3 +790,19 @@ else:
         
         else:
             st.info('This record contains no element map data.', icon=':material/visibility_off:')
+            
+    with tab5:
+        #########################
+        # Qualitative Spectra
+        #########################
+        if sst.qualitativeSpectraXlsx == {}:
+            st.info('No qualitative spectra found in this record.', icon=':material/visibility_off:')
+        else:
+            for sheet in sst.qualitativeSpectraXlsx.keys():
+                st.subheader(sheet, anchor=False)
+                st.line_chart(
+                    sst.qualitativeSpectraXlsx[sheet],
+                    x = sst.qualitativeSpectraXlsx[sheet].columns[0],
+                    y = sst.qualitativeSpectraXlsx[sheet].columns[1:]
+                )
+                st.write('')

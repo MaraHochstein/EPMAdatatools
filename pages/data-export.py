@@ -42,48 +42,97 @@ filenamePostCond = ''
 #########################
 # export functions
 #########################
-# click zip button
+# click zip img button
 def compileZipImg():
     sst.createZipImg = 1
+    
+# click zip map button
+def compileZipMap():
+    sst.createZipMap = 1
      
 # initiate img to zip button
 def imgZipDownloadButton():
     if sst.createZipImg == 1:
-        with st.status('Loading image data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:        
-            
-            imgLoaded = 0
-            progressTxt = 'Adding images to zip-archive ... (' + str(imgLoaded) + '/' + str(len(sst.imageFiles)) + ' images processed)'
-            imgProgress = st.progress(0, text=progressTxt)
-            
-            # create BytesIO object to store zip file in memory
-            zipBytes = io.BytesIO()
-            with zipfile.ZipFile(zipBytes, 'w') as zipFile:
-                for imgId in sst.imageFiles:
-                    # disable automatic redirection
-                    response = kadiLoadImg('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + imgId + '/download')
-                    # extract filename from response headers
-                    filename = sst.imageFiles[imgId]
-                    # add image to zip file
-                    zipFile.writestr(filename, response.content)
-                    # update progress
-                    imgLoaded = imgLoaded + 1
-                    progressTxt = 'Adding images to zip-archive ... (' + str(imgLoaded) + '/' + str(len(sst.imageFiles)) + ' images processed)'                                   
-                    imgPercent = (100/len(sst.imageFiles)*imgLoaded)/100
-                    imgProgress.progress(imgPercent, text=progressTxt)
-            zipData = zipBytes.getvalue()
-            
-            filename = sst.recordName + '_image-files.zip'
-            st.success('Compiling complete! Download your zip-archive below.', icon=':material/folder_zip:')
-            zipStatus.update(label='Compiling complete!', state='complete', expanded=False)
+        if sst.zipBytesImg == 0:
+            with st.status('Loading image data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:        
+                
+                imgLoaded = 0
+                progressTxt = 'Adding images to zip-archive ... (' + str(imgLoaded) + '/' + str(len(sst.imageFiles)) + ' images processed)'
+                imgProgress = st.progress(0, text=progressTxt)
+                
+                # create BytesIO object to store zip file in memory
+                zipBytes = io.BytesIO()
+                with zipfile.ZipFile(zipBytes, 'w') as zipFile:
+                    for imgId in sst.imageFiles:
+                        # disable automatic redirection
+                        response = kadiLoadImg('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + imgId + '/download')
+                        # extract filename from response headers
+                        filename = sst.imageFiles[imgId]
+                        # add image to zip file
+                        zipFile.writestr(filename, response.content)
+                        # update progress
+                        imgLoaded = imgLoaded + 1
+                        progressTxt = 'Adding images to zip-archive ... (' + str(imgLoaded) + '/' + str(len(sst.imageFiles)) + ' images processed)'                                   
+                        imgPercent = (100/len(sst.imageFiles)*imgLoaded)/100
+                        imgProgress.progress(imgPercent, text=progressTxt)
+                zipBytes.seek(0)
+                sst.zipBytesImg = zipBytes
+                
+                st.success('Compiling complete! Download your zip-archive below.', icon=':material/folder_zip:')
+                zipStatus.update(label='Compiling complete!', state='complete', expanded=False)
+        
+        filename = sst.recordName + '_image-files.zip'
         
         # download button
-        st.download_button('**Save ' + filename + '**', zipData,
+        st.download_button('**Save ' + filename + '**', sst.zipBytesImg,
                     file_name = filename,
                     icon=':material/folder_zip:',
                     mime = 'application/zip',
                     type = 'primary',
-                   )
+                    )
    
+# initiate maps to zip button
+def mapZipDownloadButton():
+    if sst.createZipMap == 1:
+        if sst.zipBytesMap == 0:
+            with st.status('Loading map data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:
+                
+                mapLoaded = 0
+                progressTxt = 'Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapData)) + ' maps processed)'
+                mapProgress = st.progress(0, text=progressTxt)
+                
+                # create BytesIO object to store zip file in memory
+                zipBytes = io.BytesIO()
+                # add csv's to zip file
+                with zipfile.ZipFile(zipBytes, 'w') as zipFile:
+                    for filename, fileData in sst.mapData.items():
+                        # replace filename
+                        newFilename = filename.replace(' ', '-')
+                        # convert data to csv
+                        csvData = fileData['imgData'].to_csv(index=False)
+                        zipFile.writestr(newFilename, csvData)
+                        # update progress
+                        mapLoaded = mapLoaded + 1
+                        progressTxt = 'Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapData)) + ' maps processed)'
+                        mapPercent = (100/len(sst.mapData)*mapLoaded)/100
+                        mapProgress.progress(mapPercent, text=progressTxt)
+                        
+                zipBytes.seek(0)
+                sst.zipBytesMap = zipBytes
+                
+                st.success('Compiling complete! Download your zip-archive below.', icon=':material/folder_zip:')
+                zipStatus.update(label='Compiling complete!', state='complete', expanded=False)
+        
+        filename = sst.recordName + '_map-csv.zip'
+        
+        # download button
+        st.download_button('**Save ' + filename + '**', sst.zipBytesMap,
+                    file_name = filename,
+                    icon = ':material/folder_zip:',
+                    mime = 'application/zip',
+                    type = 'primary',
+                    )
+
 
 #########################
 # kadi upload functions
@@ -285,11 +334,11 @@ else:
                 )
     
     
-    #########################
-    # images & element maps
-    #########################   
+    ####################################
+    # images & rendered element maps
+    ####################################   
     st.write('')
-    st.subheader('Download image (\*.jpg, \*.tif) & map files (\*.png) as zip-archives', anchor=False)
+    st.subheader('Download images (\*.jpg, \*.tif) & rendered element maps (\*.png) as zip-archives', anchor=False)
     if len(sst.imageData) > 0:
         if sst.createZipImg == 1:
             imgZipDownloadButton()
@@ -308,17 +357,31 @@ else:
                 
         zipDataMap = zipBytes.getvalue()
         
-        filename = sst.recordName + '_map-files.zip'
+        filename = sst.recordName + '_map-images.zip'
         
         st.write('Map images will be downloaded as *.png-files with display settings chosen in **:material/blur_on: Element Maps** under ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '**')
         
         # download button
         st.download_button('**Save ' + filename + '**', zipDataMap,
                     file_name = filename,
-                    icon=':material/folder_zip:',
+                    icon = ':material/folder_zip:',
                     mime = 'application/zip',
                     type = 'primary',
                    )
+    else:
+        st.info('This record contains no element maps.', icon=':material/visibility_off:')
+    
+    
+    #########################
+    # element maps csv
+    #########################
+    st.write('')
+    st.subheader('Download map files (\*.csv) as zip-archive', anchor=False)
+    if len(sst.mapData) > 0:
+        if sst.createZipMap == 1:
+            mapZipDownloadButton()
+        else:
+            st.button('**Click to compile map data to zip-archive**', type='primary', icon=':material/folder_zip:', key='mapDown', on_click=compileZipMap)            
     else:
         st.info('This record contains no element maps.', icon=':material/visibility_off:')
     

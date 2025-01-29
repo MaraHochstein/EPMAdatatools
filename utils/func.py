@@ -75,7 +75,9 @@ variableList = [
     # other variables
     ['infoToast', {}], # messages for st.toast after switch_page
     ['createZipImg', 0], # for export btn
+    ['zipBytesImg', 0], # for export btn
     ['createZipMap', 0], # for export btn
+    ['zipBytesMap', 0], # for export btn
 ]
 
 global pageNames
