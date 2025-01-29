@@ -380,7 +380,7 @@ else:
         # Methods
         ################
         # different tabs for different datatypes
-        tab3a, tab3b, tab3c, tab3d, tab3e = st.tabs([':material/labs: Quantitative Conditions', ':material/blur_on: Map Conditions', ':material/database: Kadi Metadata', ':material/stylus_note: Method Writeup', ':material/ssid_chart: Qualitative Spectra'])
+        tab3a, tab3b, tab3c, tab3d, tab3e = st.tabs([':material/labs: Quantitative Conditions', ':material/blur_on: Map Conditions', ':material/ssid_chart: Qualitative Spectra', ':material/database: Kadi Metadata', ':material/stylus_note: Method Writeup'])
         
         # Quantitative Conditions
         with tab3a: 
@@ -456,13 +456,27 @@ else:
                             st.subheader('EDS (Energy-Dispersive Spectrometry) Measurement Conditions')
                             st.table(sst.mapEdsData[mapNameJson])
         
-        # Kadi Metadata    
+        # Qualitative Spectra
         with tab3c:
+            st.subheader('Qualitative Spectra Conditions', anchor=False)
+            if sst.qualitativeSpectraXlsx == {} or sst.methodQualiGeneralData.empty or sst.methodQualiSpecData.empty:
+                st.info('No qualitative spectra measurement conditions found in this record.', icon=':material/visibility_off:')
+            else:
+                st.subheader('General Information', anchor=False)
+                left, right = st.columns((1,1))
+                with left:
+                    st.table(sst.methodQualiGeneralData)
+                
+                st.subheader('Spectrometer Conditions', anchor=False)
+                st.table(sst.methodQualiSpecData)
+        
+        # Kadi Metadata    
+        with tab3d:
             st.subheader('Kadi Metadata', anchor=False)
             st.table(sst.kadiMetaData)
         
         # Method Writeup
-        with tab3d: 
+        with tab3e: 
             if sst.condInfos != {}:
                 if 'Quantitative Analysis' in sst.condInfos[1][1]:
                     st.subheader('Standard Condition Writeup', anchor=False)
@@ -487,27 +501,12 @@ else:
                 st.info('Standard Condition Writeup could not be generated for this record.', icon=':material/visibility_off:')
                 
             # Flank Method
-            #with tab3d2:
+            #with tab3e2:
             #    st.write('The atomic $Fe^{3+}/Fe_{tot}$ proportions in garnets were determined with the flank method as developed and refined by Höfer et al. (1994) and Höfer and Brey (2007). Measurements were conducted with a JEOL JXA-8530F Plus electron microprobe at the Institute für Geowissenschaften, GU Frankfurt am Main. The flank method and the quantitative elemental analyses were simultaneously conducted using WDS at 15 kV and 120 nA, with a beam diameter of 1 μm. Two spectrometers with TAPL crystals for high intensities and the smallest detector slit (300 μm) were used, with 100 s counting time for $FeL_{α}$ and $FeL_{β}$. The $Fe^{3+}/Fe_{tot}$ of garnets were determined by applying the correction for self-absorption using natural and synthetic garnets with variable total $Fe$ and $Fe^{3+}/Fe_{tot}$ known from Mössbauer ›milliprobe‹ (Höfer and Brey, 2007). The remaining 3 spectrometers carried out the simultaneous elemental analyses of $Si$, $Ti$, $Al$, $Cr$, $Fe$, $Mn$, $Ni$, $Mg$, $Ca$, $Na$, $K$ and $P$. Appropriate silicates (pyrope ($Mg$, $Al$, $Si$), albite ($Na$), $CaSiO_{3}$ ($Ca$)), phosphate ($KTiOPO_{4}$ ($Ti$, $K$, $P$)), and metals or metal oxides (iron metal ($Fe$), $NiO$ ($Ni$), $MnTiO_{3}$ ($Mn$), $Cr_{2}O_{3}$ ($Cr$)) were used as standards, and a PRZ routine was used for the matrix correction. The uncertainty in $Fe^{3+}/Fe_{tot}$ analyses is about ± 0.01 (1σ), while garnets with higher $FeO$ have smaller errors than garnets with lower $FeO$.')
             #    st.divider()
             #    st.subheader('References', anchor=False)
             #    st.markdown('Höfer et al. (1994): https://doi.org/10.1127/ejm/6/3/0407')
             #    st.markdown('Höfer & Brey (2007): https://doi.org/10.2138/am.2007.2390')
-        
-        
-        # Qualitative Spectra
-        with tab3e:
-            st.subheader('Qualitative Spectra Conditions', anchor=False)
-            if sst.qualitativeSpectraXlsx == {} or sst.methodQualiGeneralData.empty or sst.methodQualiSpecData.empty:
-                st.info('No qualitative spectra measurement conditions found in this record.', icon=':material/visibility_off:')
-            else:
-                st.subheader('General Information', anchor=False)
-                left, right = st.columns((1,1))
-                with left:
-                    st.table(sst.methodQualiGeneralData)
-                
-                st.subheader('Spectrometer Conditions', anchor=False)
-                st.table(sst.methodQualiSpecData)
 
         
     with tab4:
