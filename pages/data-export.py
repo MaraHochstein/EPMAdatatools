@@ -79,7 +79,7 @@ def imgZipDownloadButton():
                 sst.zipBytesImg = zipBytes
                 
                 st.success('Compiling complete! Download your zip-archive below.', icon=':material/folder_zip:')
-                zipStatus.update(label='Compiling complete!', state='complete', expanded=False)
+                zipStatus.update(label='Compiling complete!', state='complete', expanded=True)
         
         filename = sst.recordName + '_image-files.zip'
         
@@ -121,7 +121,7 @@ def mapZipDownloadButton():
                 sst.zipBytesMap = zipBytes
                 
                 st.success('Compiling complete! Download your zip-archive below.', icon=':material/folder_zip:')
-                zipStatus.update(label='Compiling complete!', state='complete', expanded=False)
+                zipStatus.update(label='Compiling complete!', state='complete', expanded=True)
         
         filename = sst.recordName + '_map-csv.zip'
         
