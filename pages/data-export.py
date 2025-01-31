@@ -9,6 +9,9 @@ from utils.funcKadi import (kadiGetData, kadiLoadImg, kadiUploadFilters, getMeta
 import zipfile # for img download
 import xlsxwriter # for xlsx download
 
+import matplotlib.pyplot as plt # for element maps (plotting)
+import seaborn as sns # for element maps (heatmap)
+
 #page config
 st.set_page_config(page_title='EPMA Data Tools', page_icon='./app/static/logo.png', layout='wide', initial_sidebar_state='expanded')
 
@@ -46,9 +49,13 @@ filenamePostCond = ''
 def compileZipImg():
     sst.createZipImg = 1
     
-# click zip map button
+# click zip map csv button
 def compileZipMap():
     sst.createZipMap = 1
+
+# click zip map png button
+def compileZipMapPng():
+    sst.createZipMapPng = 1
      
 # initiate img to zip button
 def imgZipDownloadButton():
@@ -133,6 +140,111 @@ def mapZipDownloadButton():
                     type = 'primary',
                     )
 
+# initiate map pngs to zip button
+def mapPngZipDownloadButton():
+    if sst.createZipMapPng == 1:
+        if sst.zipBytesMapPng == 0:
+            with st.status('Creating map plots and compiling zip-archive, please wait ...', expanded = True) as zipStatus:
+                
+                # create missing map plots
+                ## get all maps that are not yet converted to png
+                missingMapPng = set(sst.mapData.keys()) - set([key.replace('.png', '.csv') for key in sst.mapImages.keys()])
+                
+                ## progress
+                mapProcessed = 0
+                progressTxt = 'Creating missing map plots ... (' + str(mapProcessed) + '/' + str(len(missingMapPng)) + ' maps processed)'
+                mapPngProgress = st.progress(0, text=progressTxt)
+                
+                ## create missing map plots
+                for key in missingMapPng:
+                    sst.mapImages[key.replace('.csv','.png')] = plotElementMap(key)
+                    
+                    ## update progress
+                    mapProcessed = mapProcessed + 1
+                    progressTxt = 'Creating missing map plots ... (' + str(mapProcessed) + '/' + str(len(missingMapPng)) + ' maps processed)'
+                    mapPngPercent = (100/len(missingMapPng)*mapProcessed)/100
+                    mapPngProgress.progress(mapPngPercent, text=progressTxt)
+                
+                
+                # add maps to zip
+                ## progress
+                mapLoaded = 0
+                progressTxt = 'Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapImages)) + ' maps processed)'
+                mapProgress = st.progress(0, text=progressTxt)
+                
+                ## create BytesIO object to store zip file in memory
+                zipBytes = io.BytesIO()
+                with zipfile.ZipFile(zipBytes, 'w') as zipFile:
+                    for imgId in sst.mapImages:
+                        # add image to zip file
+                        zipFile.writestr(imgId, sst.mapImages[imgId])
+                        # update progress
+                        mapLoaded = mapLoaded + 1
+                        progressTxt = 'Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapImages)) + ' maps processed)'
+                        mapPercent = (100/len(sst.mapData)*mapLoaded)/100
+                        mapProgress.progress(mapPercent, text=progressTxt)
+
+                zipBytes.seek(0)
+                sst.zipBytesMapPng = zipBytes
+                
+                st.success('Compiling complete! Download your zip-archive below.', icon=':material/folder_zip:')
+                zipStatus.update(label='Compiling complete!', state='complete', expanded=True)
+                    
+        filename = sst.recordName + '_map-images.zip'
+        
+        # download button
+        st.download_button('**Save ' + filename + '**', sst.zipBytesMapPng,
+                    file_name = filename,
+                    icon=':material/folder_zip:',
+                    mime = 'application/zip',
+                    type = 'primary',
+                    )
+                
+
+# create missing element map .pngs
+@st.cache_data(show_spinner=False)
+def plotElementMap(selectedMap): #, mWidth=2.5, mHeight=1.5
+     
+    # calculations for min & max mapping values
+    rawValues = sst.mapData[selectedMap]['imgData'].values.flatten().tolist()
+    dataMin = int(min(rawValues))
+    dataMax = int(max(rawValues))
+    dataMean = int(round(sum(rawValues)/len(rawValues),1))
+    dataStd = int(round(np.std(rawValues),1))
+
+    # range select preset: mean +- 3 std dev (normal distribution)
+    rangeSelMin = int(max(dataMean - (2*dataStd), (dataMin if dataMin > 0 else 0))) # sets 0 if smaller
+    rangeSelMax = int(min(dataMean + (2*dataStd), dataMax)) # sets to dataMax if higher
+    
+    # plot
+    plt.figure(figsize=(5, 2), dpi=600)
+    heatMap = sns.heatmap(pd.DataFrame(sst.mapData[selectedMap]['imgData']), 
+            annot = False, 
+            cmap = 'viridis', # selected color bar
+            cbar = True,
+            square = True,
+            # set min & max to map values
+            vmin = rangeSelMin,
+            vmax = rangeSelMax,
+            # turn ticks off
+            xticklabels = False,
+            yticklabels = False,
+        )
+        
+    plt.gca().collections[0].colorbar.ax.tick_params(labelsize=5) # numbers on colorbar
+    plt.gca().collections[0].colorbar.set_label(label= sst.mapData[selectedMap]['element'] + ' cnt', size=5, weight='bold') # label on colorbar
+    
+    # save plot as img-data in sst.mapImages
+    imgBuffer = io.BytesIO()
+    plt.savefig(imgBuffer, format='png', bbox_inches='tight')
+    imgBuffer.seek(0) # move cursor back to start of buffer
+    
+    mapImageData = imgBuffer.getvalue() # returned to sst.mapImages[selectedMap]
+    
+    plt.close()
+    
+    return mapImageData
+
 
 #########################
 # kadi upload functions
@@ -178,7 +290,7 @@ else:
     #########################
     # xlsx download
     #########################   
-    st.subheader('Download as Excel Spreadsheet (*.xlsx)', anchor=False)
+    st.subheader(':material/table_view: Download as Excel Spreadsheet (*.xlsx)', anchor=False)
     
     st.write('Please choose the data that should be included in the downloaded file.')
     
@@ -334,11 +446,12 @@ else:
                 )
     
     
-    ####################################
-    # images & rendered element maps
-    ####################################   
+    ###############
+    # images 
+    ###############   
     st.write('')
-    st.subheader('Download images (\*.jpg, \*.tif) & rendered element maps (\*.png) as zip-archives', anchor=False)
+    st.subheader(':material/photo_library: Download images (\*.jpg, \*.tif) as zip-archive', anchor=False)
+    # images
     if len(sst.imageData) > 0:
         if sst.createZipImg == 1:
             imgZipDownloadButton()
@@ -347,27 +460,19 @@ else:
     else:
         st.info('This record contains no images.', icon=':material/visibility_off:')
     
+    
+    ###############################
+    # rendered element maps pngs
+    ###############################
+    st.write('')
+    st.subheader(':material/blur_on: Download rendered element maps (\*.png) as zip-archive', anchor=False)
+    # element maps
     if len(sst.mapData) > 0:
-        # create BytesIO object to store zip file in memory
-        zipBytes = io.BytesIO()
-        with zipfile.ZipFile(zipBytes, 'w') as zipFile:
-            for imgId in sst.mapImages:
-                # add image to zip file
-                zipFile.writestr(imgId, sst.mapImages[imgId])
-                
-        zipDataMap = zipBytes.getvalue()
-        
-        filename = sst.recordName + '_map-images.zip'
-        
-        st.write('Map images will be downloaded as *.png-files with display settings chosen in **:material/blur_on: Element Maps** under ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '**')
-        
-        # download button
-        st.download_button('**Save ' + filename + '**', zipDataMap,
-                    file_name = filename,
-                    icon = ':material/folder_zip:',
-                    mime = 'application/zip',
-                    type = 'primary',
-                   )
+        if sst.createZipMapPng == 1:
+            mapPngZipDownloadButton()
+        else:
+            st.info('Map images will be downloaded as *.png-files. Element maps that have not been rendered will be exported with standard display settings. You can adjust these settings in the menu under ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** :material/arrow_forward: **:material/blur_on: Element Maps**. Rendering missing element maps may take some time.', icon=':material/warning:')
+            st.button('**Click to compile rendered maps to zip-archive**', type='primary', icon=':material/folder_zip:', key='mapPngDown', on_click=compileZipMapPng)
     else:
         st.info('This record contains no element maps.', icon=':material/visibility_off:')
     
@@ -376,7 +481,7 @@ else:
     # element maps csv
     #########################
     st.write('')
-    st.subheader('Download map files (\*.csv) as zip-archive', anchor=False)
+    st.subheader(':material/blur_on: Download map files (\*.csv) as zip-archive', anchor=False)
     if len(sst.mapData) > 0:
         if sst.createZipMap == 1:
             mapZipDownloadButton()
