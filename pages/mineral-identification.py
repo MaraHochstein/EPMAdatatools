@@ -332,7 +332,7 @@ def calcOxides(oxideList, selectedMinerals, selectedData):
     #                           ...
     #
     
-    with st.spinner('Mineral formula recalculation, please wait...'):
+    with st.spinner('Mineral formula recalculation, please wait...', show_time=True):
         # make a copy of standardMineralFormulas only containing selected minerals
         usedMineralFormulas = {key: standardMineralFormulas[key] for key in selectedMinerals}
         # set up needed columns
@@ -477,7 +477,7 @@ def calcOxides(oxideList, selectedMinerals, selectedData):
 
 # calculate probabilities
 def calcProbabilities(filledFormulas, selectedData):
-    with st.spinner('Mineral probability calculation, please wait...'):       
+    with st.spinner('Mineral probability calculation, please wait...', show_time=True):       
         #####################
         # step 8: output
         #####################

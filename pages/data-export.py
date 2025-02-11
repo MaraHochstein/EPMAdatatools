@@ -61,10 +61,10 @@ def compileZipMapPng():
 def imgZipDownloadButton():
     if sst.createZipImg == 1:
         if sst.zipBytesImg == 0:
-            with st.status('Loading image data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:        
+            with st.status(':material/sync: Loading image data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:        
                 
                 imgLoaded = 0
-                progressTxt = 'Adding images to zip-archive ... (' + str(imgLoaded) + '/' + str(len(sst.imageFiles)) + ' images processed)'
+                progressTxt = ':material/create_new_folder: Adding images to zip-archive ... (' + str(imgLoaded) + '/' + str(len(sst.imageFiles)) + ' images processed)'
                 imgProgress = st.progress(0, text=progressTxt)
                 
                 # create BytesIO object to store zip file in memory
@@ -79,7 +79,7 @@ def imgZipDownloadButton():
                         zipFile.writestr(filename, response.content)
                         # update progress
                         imgLoaded = imgLoaded + 1
-                        progressTxt = 'Adding images to zip-archive ... (' + str(imgLoaded) + '/' + str(len(sst.imageFiles)) + ' images processed)'                                   
+                        progressTxt = ':material/create_new_folder: Adding images to zip-archive ... (' + str(imgLoaded) + '/' + str(len(sst.imageFiles)) + ' images processed)'                                   
                         imgPercent = (100/len(sst.imageFiles)*imgLoaded)/100
                         imgProgress.progress(imgPercent, text=progressTxt)
                 zipBytes.seek(0)
@@ -102,10 +102,10 @@ def imgZipDownloadButton():
 def mapZipDownloadButton():
     if sst.createZipMap == 1:
         if sst.zipBytesMap == 0:
-            with st.status('Loading map data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:
+            with st.status(':material/sync: Loading map data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:
                 
                 mapLoaded = 0
-                progressTxt = 'Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapData)) + ' maps processed)'
+                progressTxt = ':material/create_new_folder: Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapData)) + ' maps processed)'
                 mapProgress = st.progress(0, text=progressTxt)
                 
                 # create BytesIO object to store zip file in memory
@@ -120,7 +120,7 @@ def mapZipDownloadButton():
                         zipFile.writestr(newFilename, csvData)
                         # update progress
                         mapLoaded = mapLoaded + 1
-                        progressTxt = 'Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapData)) + ' maps processed)'
+                        progressTxt = ':material/create_new_folder: Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapData)) + ' maps processed)'
                         mapPercent = (100/len(sst.mapData)*mapLoaded)/100
                         mapProgress.progress(mapPercent, text=progressTxt)
                         
@@ -144,7 +144,7 @@ def mapZipDownloadButton():
 def mapPngZipDownloadButton():
     if sst.createZipMapPng == 1:
         if sst.zipBytesMapPng == 0:
-            with st.status('Creating map plots and compiling zip-archive, please wait ...', expanded = True) as zipStatus:
+            with st.status(':material/box_edit: Creating map plots and compiling zip-archive, please wait ...', expanded = True) as zipStatus:
                 
                 # create missing map plots
                 ## get all maps that are not yet converted to png
@@ -152,7 +152,7 @@ def mapPngZipDownloadButton():
                 
                 ## progress
                 mapProcessed = 0
-                progressTxt = 'Creating missing map plots ... (' + str(mapProcessed) + '/' + str(len(missingMapPng)) + ' maps processed)'
+                progressTxt = ':material/edit_square: Creating missing map plots ... (' + str(mapProcessed) + '/' + str(len(missingMapPng)) + ' maps processed)'
                 mapPngProgress = st.progress(0, text=progressTxt)
                 
                 ## create missing map plots
@@ -161,7 +161,7 @@ def mapPngZipDownloadButton():
                     
                     ## update progress
                     mapProcessed = mapProcessed + 1
-                    progressTxt = 'Creating missing map plots ... (' + str(mapProcessed) + '/' + str(len(missingMapPng)) + ' maps processed)'
+                    progressTxt = ':material/edit_square: Creating missing map plots ... (' + str(mapProcessed) + '/' + str(len(missingMapPng)) + ' maps processed)'
                     mapPngPercent = (100/len(missingMapPng)*mapProcessed)/100
                     mapPngProgress.progress(mapPngPercent, text=progressTxt)
                 
@@ -169,7 +169,7 @@ def mapPngZipDownloadButton():
                 # add maps to zip
                 ## progress
                 mapLoaded = 0
-                progressTxt = 'Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapImages)) + ' maps processed)'
+                progressTxt = ':material/create_new_folder: Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapImages)) + ' maps processed)'
                 mapProgress = st.progress(0, text=progressTxt)
                 
                 ## create BytesIO object to store zip file in memory
@@ -180,7 +180,7 @@ def mapPngZipDownloadButton():
                         zipFile.writestr(imgId, sst.mapImages[imgId])
                         # update progress
                         mapLoaded = mapLoaded + 1
-                        progressTxt = 'Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapImages)) + ' maps processed)'
+                        progressTxt = ':material/create_new_folder: Adding maps to zip-archive ... (' + str(mapLoaded) + '/' + str(len(sst.mapImages)) + ' maps processed)'
                         mapPercent = (100/len(sst.mapData)*mapLoaded)/100
                         mapProgress.progress(mapPercent, text=progressTxt)
 
@@ -220,7 +220,7 @@ def plotElementMap(selectedMap): #, mWidth=2.5, mHeight=1.5
     plt.figure(figsize=(5, 2), dpi=600)
     heatMap = sns.heatmap(pd.DataFrame(sst.mapData[selectedMap]['imgData']), 
             annot = False, 
-            cmap = 'viridis', # selected color bar
+            cmap = 'viridis', # standard color bar for unedited maps
             cbar = True,
             square = True,
             # set min & max to map values
@@ -230,7 +230,9 @@ def plotElementMap(selectedMap): #, mWidth=2.5, mHeight=1.5
             xticklabels = False,
             yticklabels = False,
         )
-        
+    # ensure plot elements are fully processed
+    plt.draw()
+    
     plt.gca().collections[0].colorbar.ax.tick_params(labelsize=5) # numbers on colorbar
     plt.gca().collections[0].colorbar.set_label(label= sst.mapData[selectedMap]['element'] + ' cnt', size=5, weight='bold') # label on colorbar
     
@@ -269,7 +271,10 @@ def showKadiUploadMapSettings():
             if st.button('**Upload map display settings to Kadi4Mat**', type='primary', icon=':material/developer_board:', key='kadiUpMap'):
                 kadiUploadFilters(uploadPlaceholder, 'maps')
         elif sst.mapData == {}:
-            st.info('This record contains no element maps.', icon=':material/visibility_off:')
+            if not sst.importMaps:
+                st.info('Element maps were excluded from import. Clear the import and reload the dataset with map import enabled to upload element map display settings for this record.', icon=':material/sync_disabled:')
+            else:
+                st.info('This record contains no element maps.', icon=':material/visibility_off:')
         else:
             st.info('No filters applied.  \n\n Check out **:material/map: Element Maps** under ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** to edit your maps first.', icon=':material/developer_board_off:')
    
@@ -458,7 +463,10 @@ else:
         else:
             st.button('**Click to compile images to zip-archive**', type='primary', icon=':material/folder_zip:', key='imgDown', on_click=compileZipImg)
     else:
-        st.info('This record contains no images.', icon=':material/visibility_off:')
+        if not sst.importImages:
+            st.info('Images were excluded from import. Clear the import and reload the dataset with image import enabled to download image files for this record.', icon=':material/sync_disabled:')
+        else:
+            st.info('This record contains no images.', icon=':material/visibility_off:')
     
     
     ###############################
@@ -474,7 +482,10 @@ else:
             st.info('Map images will be downloaded as *.png-files. Element maps that have not been rendered will be exported with standard display settings. You can adjust these settings in the menu under ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** :material/arrow_forward: **:material/blur_on: Element Maps**. Rendering missing element maps may take some time.', icon=':material/warning:')
             st.button('**Click to compile rendered maps to zip-archive**', type='primary', icon=':material/folder_zip:', key='mapPngDown', on_click=compileZipMapPng)
     else:
-        st.info('This record contains no element maps.', icon=':material/visibility_off:')
+        if not sst.importMaps:
+            st.info('Element maps were excluded from import. Clear the import and reload the dataset with map import enabled to download element maps for this record.', icon=':material/sync_disabled:')
+        else:
+            st.info('This record contains no element maps.', icon=':material/visibility_off:')
     
     
     #########################
@@ -488,7 +499,10 @@ else:
         else:
             st.button('**Click to compile map data to zip-archive**', type='primary', icon=':material/folder_zip:', key='mapDown', on_click=compileZipMap)            
     else:
-        st.info('This record contains no element maps.', icon=':material/visibility_off:')
+        if not sst.importMaps:
+            st.info('Element maps were excluded from import. Clear the import and reload the dataset with map import enabled to download element maps for this record.', icon=':material/sync_disabled:')
+        else:
+            st.info('This record contains no element maps.', icon=':material/visibility_off:')
     
     st.divider()
     

@@ -57,7 +57,7 @@ def kadiGetData(url):
 
 # get records from user
 def kadiGetUserRecords():
-    with st.spinner('Loading records from profile, please wait...'):
+    with st.spinner('Loading records from profile, please wait...', show_time=True):
         # clear from previous run
         sst.userRecords = {}
         
@@ -88,7 +88,7 @@ def kadiGetUserRecords():
 
 # get records from group
 def kadiGetGroupRecords():
-    with st.spinner('Loading records from IfG GUF, please wait...'):
+    with st.spinner('Loading records from IfG GUF, please wait...', show_time=True):
         # clear from previous run
         sst.userRecords = {}
         response = kadiGetData('groups/158/records?per_page=100') # per_page max = 100
@@ -113,7 +113,7 @@ def kadiGetMetadata():
                 if response.json()[i]['key'] != 'password':
                     firstCol.append(response.json()[i]['key'])
                     if response.json()[i]['value'] == None:
-                        valueWithUnit = '-'
+                        valueWithUnit = '\-'
                     else:
                         valueWithUnit = str(response.json()[i]['value'])
                     if 'unit' in response.json()[i]:
@@ -123,6 +123,7 @@ def kadiGetMetadata():
     
     metadata = pd.concat([pd.DataFrame({'Value': [kadiGetData('records/' + sst.recordID).json()['description']]}, index=['description']), pd.DataFrame(data=dataCol, index=firstCol, columns=['Value'])])
     metadata.index = metadata.index.str.capitalize()
+    
     sst.kadiMetaData = metadata
 
 
@@ -190,7 +191,7 @@ def kadiLoadFiles(parentContainer = False):
                 mapFilter = {}
                 
                 # get kadi metadata for record
-                st.write('Getting metadata from Kadi4Mat ...')
+                st.write(':material/cloud_download: Getting metadata from Kadi4Mat ...')
                 kadiGetMetadata()
                 
                 
@@ -212,7 +213,7 @@ def kadiLoadFiles(parentContainer = False):
                 ##########################################
                 
                 # get all filenames from api
-                st.write('Checking files for raw EPMA data ...')
+                st.write(':material/quick_reference_all: Checking files for raw EPMA data ...')
                 response = kadiGetData('records/' + sst.recordID + '/files?per_page=100') # per_page max = 100
                 maxPages = response.json()['_pagination']['total_pages'] # get total pages of files for this record (one page has 100 files max)
                 
@@ -246,19 +247,19 @@ def kadiLoadFiles(parentContainer = False):
                         elif qualiSpectraQuickName in item['name'] and item['mimetype'] == 'text/plain':
                             qualiSpectraQuickFile[item['id']] = item['name']
                         # map parameter jsons
-                        elif item['name'].startswith('map ') and item['mimetype'] == 'application/json' and sst.importMaps:
+                        elif item['name'].startswith('map ') and item['mimetype'] == 'application/json':
                             mapJsons[item['id']] = item['name']                        
                         # images
-                        elif item['mimetype'] == 'image/tiff' or item['mimetype'] == 'image/jpeg' and sst.importImages:
+                        elif item['mimetype'] == 'image/tiff' or item['mimetype'] == 'image/jpeg':
                             imageFiles[item['id']] = item['name']
                         # filter
                         elif 'filter' in item['name'] and item['mimetype'] == 'text/plain':
                             kadiFilter[item['id']] = item['name']
                         # maps
-                        elif item['name'].startswith('map ') and item['mimetype'] == 'text/csv' and sst.importMaps:
+                        elif item['name'].startswith('map ') and item['mimetype'] == 'text/csv':
                             mapFiles[item['id']] = item['name']
                         # map settings
-                        elif 'mapSettings' in item['name'] and item['mimetype'] == 'text/plain' and sst.importMaps:
+                        elif 'mapSettings' in item['name'] and item['mimetype'] == 'text/plain':
                             mapFilter[item['id']] = item['name']
                         
                 
@@ -371,7 +372,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - 3end. check if all contain data -> else error & stop
                 ###########################################################
                 
-                st.write('Loading raw EPMA data ...')
+                st.write(':material/cloud_download: Loading raw EPMA data ...')
                 invalidFiles = []
                 
                 # 3a. optional for all measurement types
@@ -593,7 +594,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - 4c. MAPS ONLY
                 ###################################
                 
-                st.write('Merging files ...')
+                st.write(':material/merge: Merging files ...')
                 
                 
                 # 4a. QUANT (or MAPS + QUANT)
@@ -993,7 +994,7 @@ def kadiLoadFiles(parentContainer = False):
 
                 if len(kadiFilter) > 0:
                     
-                    st.write('Loading saved data filter settings ...')
+                    st.write(':material/cloud_download: Loading saved data filter settings ...')
                     
                     for i, filterID in enumerate(kadiFilter.keys()):
                         data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + filterID + '/download'))
@@ -1006,7 +1007,7 @@ def kadiLoadFiles(parentContainer = False):
                 if sst.importMaps:
                     if len(mapFilter) > 0:
                         
-                        st.write('Loading saved map settings ...')
+                        st.write(':material/cloud_download: Loading saved map settings ...')
                         
                         for i, filterID in enumerate(mapFilter.keys()):
                             data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + filterID + '/download'))
@@ -1022,7 +1023,7 @@ def kadiLoadFiles(parentContainer = False):
                         # loading progress bar
                         mapsLoaded = 0
                         sst.mapData = {}
-                        progressTxt = 'Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'
+                        progressTxt = ':material/cloud_download: Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'
                         mapProgress = st.progress(0, text=progressTxt)
                         for mapId in mapFiles.keys():
                             parts = mapFiles[mapId].rstrip('.csv').split(' ')
@@ -1042,9 +1043,11 @@ def kadiLoadFiles(parentContainer = False):
                                                                 }
                             
                             mapsLoaded = mapsLoaded + 1
-                            progressTxt = 'Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'                                    
+                            progressTxt = ':material/cloud_download: Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'                                    
                             mapPercent = (100/len(mapFiles)*mapsLoaded)/100
                             mapProgress.progress(mapPercent, text=progressTxt)
+                else:
+                    st.write(':material/skip_next: Skipping element map import.')
                 
 
                 ########################
@@ -1055,7 +1058,7 @@ def kadiLoadFiles(parentContainer = False):
                     if len(imageFiles) >= 0:
                         # loading progress bar
                         imgLoaded = 0
-                        progressTxt = 'Loading image data, this may take a while ... (' + str(imgLoaded) + '/' + str(len(imageFiles)) + ' loaded)'
+                        progressTxt = ':material/cloud_download: Loading image data, this may take a while ... (' + str(imgLoaded) + '/' + str(len(imageFiles)) + ' loaded)'
                         imgProgress = st.progress(0, text=progressTxt)
                         for imageId in imageFiles.keys():
                             if '.tif' in imageFiles[imageId] or '.tiff' in imageFiles[imageId]:
@@ -1064,10 +1067,12 @@ def kadiLoadFiles(parentContainer = False):
                                 sst.imageData = sst.imageData + [[imageId, Image.open(io.BytesIO(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + imageId + '/download')))]]
                             
                             imgLoaded = imgLoaded + 1
-                            progressTxt = 'Loading image data, this may take a while ... (' + str(imgLoaded) + '/' + str(len(imageFiles)) + ' loaded)'                                    
+                            progressTxt = ':material/cloud_download: Loading image data, this may take a while ... (' + str(imgLoaded) + '/' + str(len(imageFiles)) + ' loaded)'                                    
                             imgPercent = (100/len(imageFiles)*imgLoaded)/100
                             imgProgress.progress(imgPercent, text=progressTxt)
                         sst.imageFiles = imageFiles
+                else:
+                    st.write(':material/skip_next: Skipping image import.')
                 
                 
                 ################
@@ -1122,7 +1127,7 @@ def kadiUploadFilters(parentContainer, uploadType):
     parentContainer.empty()
     with parentContainer.container():
         with st.status('Uploading filter settings to Kadi4Mat, please wait ...', expanded = True) as kadiUploadStatus:   
-            st.write('Connecting ...')
+            st.write(':material/cloud_sync: Connecting ...')
             url = 'https://kadi4mat.iam.kit.edu/api/records/' + str(int(sst.recordID)) + '/uploads'
             if sst.kadiPAT == '':
                 authPAT = st.secrets['kadiPAT']
@@ -1138,7 +1143,7 @@ def kadiUploadFilters(parentContainer, uploadType):
             response = requests.post(url, headers=headers, json=metadata)
             
             if response.status_code == 201:
-                st.write('Starting upload progress ...')
+                st.write(':material/cloud_upload: Starting upload progress ...')
                 uploadResponse = response.json()
                 uploadID = uploadResponse['id']
                 uploadURL = uploadResponse['_actions']['upload_data']

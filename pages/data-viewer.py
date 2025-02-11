@@ -27,7 +27,16 @@ fn.refreshOauthToken()
 # css
 #######################
 fn.loadCSS()
-
+# remove auto created "Footnotes" heading
+st.html(
+    """
+<style>
+#footnotes {
+    display: none
+}
+</style>
+"""
+)
 
 
 #########################
@@ -489,14 +498,16 @@ else:
                         mins.append(min(res.split()))
                         maxs.append(max(res.split()))    
                     
-                    st.write('Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to :primary-background[' + str(sst.condInfos[5][1]) + ' kV] with a beam current of :primary-background[' + str(sst.condInfos[6][1]) + ' nA]. The following elements were measured: :primary-background[' + ', '.join(sst.condElements[1]) + ']. The spot analyses were performed with a focused beam of :primary-background[' + str(sst.shortMeasCond[0].loc["Spotsizes used (μm)"].values[0]) + ' µm] diameter. Peak measurement times were between :primary-background[' + str(min(mins)) + ' and ' + str(max(maxs)) + ' s], and backgrounds were measured with half peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in :primary-background[' + sst.condInfos[8][1] + ' correction] was applied (RR). The standards were calibrated to <1 rel%.')
+                    st.markdown(f'''Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to :primary-background[{str(sst.condInfos[5][1])} kV] with a beam current of :primary-background[{str(sst.condInfos[6][1])} nA]. The following elements were measured: :primary-background[{', '.join(sst.condElements[1])}]. The spot analyses were performed with a focused beam of :primary-background[{str(sst.shortMeasCond[0].loc["Spotsizes used (μm)"].values[0])} µm] diameter. Peak measurement times were between :primary-background[{str(min(mins))} and {str(max(maxs))} s], and backgrounds were measured with half peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in :primary-background[{sst.condInfos[8][1]} correction] was applied [^1]. The standards were calibrated to <1 rel%.
+
+---                    
+### References
+[^1]: Pouchou, J.-L. & Pichoir, F. (1991): https://doi.org/10.1007/978-1-4899-2617-3_4''') # unindent to prevent from being rendered as code block
+                    
                     # download text
                     st.download_button('Download text as .txt-file', 'Mineral compositions were determined using a JEOL 8530F Plus Hyperprobe at the Institut für Geowissenschaften, Goethe Universität Frankfurt. The accelerating voltage was set to ' + str(sst.condInfos[5][1]) + ' kV with a beam current of ' + str(sst.condInfos[6][1]) + ' nA. The following elements were measured: ' + ', '.join(sst.condElements[1]) + '. The spot analyses were performed with a focused beam of ' + str(sst.shortMeasCond[0].loc["Spotsizes used (μm)"].values[0]) + ' µm diameter. Peak measurement times were between ' + str(min(mins)) + ' and ' + str(max(maxs)) + ' s, and backgrounds were measured with half peak measurement times. Well characterised natural and synthetic reference materials were used for calibration and the build-in ' + sst.condInfos[8][1] + ' correction was applied (RR). The standards were calibrated to <1 rel%.'
                                         , file_name='standard-condition-writeup.txt', mime='text/plain'
                                       )
-                    st.divider()
-                    st.subheader('References', anchor=False)
-                    st.markdown('Pouchou, J.-L. & Pichoir, F. (1991): https://doi.org/10.1007/978-1-4899-2617-3_4')
             else:
                 st.info('Standard Condition Writeup could not be generated for this record.', icon=':material/visibility_off:')
                 
