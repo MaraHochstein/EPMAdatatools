@@ -1029,7 +1029,7 @@ def kadiLoadFiles(parentContainer = False):
                         progressTxt = ':material/cloud_download: Loading map data files, this may take a while ... (' + str(mapsLoaded) + '/' + str(len(mapFiles)) + ' loaded)'
                         mapProgress = st.progress(0, text=progressTxt)
                         for mapId in mapFiles.keys():
-                            parts = mapFiles[mapId].rstrip('.csv').split(' ')
+                            parts = mapFiles[mapId].removesuffix('.csv').split(' ')
                             # check length of parts (3 = COMPO, 5 = other)
                             if len(parts) != 5 and len(parts) != 3:
                                 st.error('Wrong format for map: ' + str(mapFiles[mapId]) + '. Please contact us via mail (see ' + fn.pageNames['help']['ico'] + ' **' + fn.pageNames['help']['name'] + '**).', icon=':material/sync_problem:')
