@@ -473,6 +473,8 @@ def kadiLoadFiles(parentContainer = False):
                                 # first occurance of each comment (sample name) -> make entry
                                 duplicateComments[comment] = 0
                         
+                        st.write(csvSummaryData)
+                        st.stop()
                         
                     else:
                         invalidFiles.append(csvSummaryName + '-file')
