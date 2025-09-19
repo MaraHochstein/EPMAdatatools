@@ -43,4 +43,4 @@ st.write('If you have any questions or want to provide feedback about EPMA Data 
 st.link_button('Browse or Open an Issue on GitHub', 'https://github.com/MaraHochstein/EPMAdatatools/issues')
 
 ## testing
-#fn.showSessionState()
+fn.showSessionState()
