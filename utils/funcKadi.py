@@ -544,7 +544,7 @@ def kadiLoadFiles(parentContainer = False):
                                 st.write(mapJsonID)
                             else:
                                 invalidFiles.append(mapJsonName + '-file(s)')
-                
+                st.stop()
                 # 3d. QUALITATIVE SPECTRA
                 # - 3d1. xlsx
                 # - 3d2. quick standard quali
