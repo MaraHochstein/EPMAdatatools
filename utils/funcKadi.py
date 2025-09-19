@@ -299,7 +299,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - summary standard.txt
                 ################################
                 
-                if (len(mapFiles) > 0 and len(csvSummaryFile) >= 1 and len(normalFile) >= 1 and len(quickFile) >= 1 and len(standardFile) >= 1) or (len(mapFiles) == 0 and len(imageFiles) == 0):
+                if (len(csvSummaryFile) >= 1 and len(normalFile) >= 1 and len(quickFile) >= 1 and len(standardFile) >= 1):
                 
                     if len(csvSummaryFile) < 1:
                         missingFiles.append(csvSummaryName + '-file')
@@ -438,7 +438,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - 3b4. summary standard.txt (standardFile)
                 #####################################################
                 
-                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0 and len(imageFiles) == 0):    
+                if (len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1):    
                     
                     # 3b1. load summary[timestamp].csv -> csvSummaryData
                     ######################################################
@@ -611,7 +611,7 @@ def kadiLoadFiles(parentContainer = False):
                 #           sst.methodStdData, sst.csvMerged
                 #############################################################################
                 
-                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0 and len(imageFiles) == 0):    
+                if (len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1):    
                     
                     # 4a1. Quantitative Conditions:
                     # - 4a11. "General Information" (quickData -> sst.methodGeneralData)
