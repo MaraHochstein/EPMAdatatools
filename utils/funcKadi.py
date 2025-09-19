@@ -542,7 +542,7 @@ def kadiLoadFiles(parentContainer = False):
                             data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + mapJsonID + '/download'))
                             if len(data) > 0: # json contains something
                                 mapJsonsData[mapJsons[mapJsonID].rstrip('.json')] = data
-                                st.write(mapJsonID)
+                                st.write(str(mapJsons[mapJsonID]))
        
                             else:
                                 invalidFiles.append(mapJsonName + '-file(s)')
