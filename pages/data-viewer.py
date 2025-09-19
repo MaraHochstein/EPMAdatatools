@@ -637,9 +637,6 @@ else:
                 else:
                     sst.mapEdit = list(filteredMaps.keys())[0]
             
-            st.write(sst.mapEdit)
-            st.write(filteredMaps.keys())
-            
             # show settings expander
             with st.expander('Adjust individual maps settings', expanded=True, icon=':material/instant_mix:'):
                 # if one map is selected
