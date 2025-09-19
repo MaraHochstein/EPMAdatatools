@@ -531,7 +531,6 @@ def kadiLoadFiles(parentContainer = False):
                 # 3c. MAPS ONLY
                 # - 3c1. json
                 #################################
-                st.write('Test')
                 
                 if sst.importMaps:
                     if len(mapFiles) > 0 and len(mapJsons) > 0:
@@ -546,6 +545,7 @@ def kadiLoadFiles(parentContainer = False):
        
                             else:
                                 invalidFiles.append(mapJsonName + '-file(s)')
+                        st.write(mapJsonsData)
                 st.stop()
                 # 3d. QUALITATIVE SPECTRA
                 # - 3d1. xlsx
