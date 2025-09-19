@@ -299,7 +299,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - summary standard.txt
                 ################################
                 
-                if (len(mapFiles) > 0 and len(csvSummaryFile) >= 1 and len(normalFile) >= 1 and len(quickFile) >= 1 and len(standardFile) >= 1) or (len(mapFiles) == 0):
+                if (len(mapFiles) > 0 and len(csvSummaryFile) >= 1 and len(normalFile) >= 1 and len(quickFile) >= 1 and len(standardFile) >= 1) or (len(mapFiles) == 0 and len(imageFiles) == 0):
                 
                     if len(csvSummaryFile) < 1:
                         missingFiles.append(csvSummaryName + '-file')
@@ -329,8 +329,8 @@ def kadiLoadFiles(parentContainer = False):
                 if len(mapFiles) > 0 and sst.importMaps:
                     if len(mapJsons) < 1:
                         missingFiles.append(mapJsonName + '-file(s)')
-                    
-
+                
+                
                 # 2end. ERROR MESSAGES
                 ########################
                 
