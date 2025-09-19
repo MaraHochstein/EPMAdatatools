@@ -611,7 +611,7 @@ def kadiLoadFiles(parentContainer = False):
                 #           sst.methodStdData, sst.csvMerged
                 #############################################################################
                 
-                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0):    
+                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0 and len(imageFiles) == 0):    
                     
                     # 4a1. Quantitative Conditions:
                     # - 4a11. "General Information" (quickData -> sst.methodGeneralData)
