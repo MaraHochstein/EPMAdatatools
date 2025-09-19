@@ -542,10 +542,12 @@ def kadiLoadFiles(parentContainer = False):
                             if len(data) > 0: # json contains something
                                 mapJsonsData[mapJsons[mapJsonID].rstrip('.json')] = data
                                 st.write(str(mapJsons[mapJsonID]))
+                                st.write(str(mapJsons[mapJsonID]).rstrip('.json'))
+                                st.write(mapJsonsData)
        
                             else:
                                 invalidFiles.append(mapJsonName + '-file(s)')
-                        st.write(mapJsonsData)
+                        
                 st.stop()
                 # 3d. QUALITATIVE SPECTRA
                 # - 3d1. xlsx
