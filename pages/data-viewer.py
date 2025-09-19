@@ -69,8 +69,12 @@ def dataframe_explorer(df: pd.DataFrame, case: bool = True) -> pd.DataFrame: # i
         st.subheader(':material/function: Recalculate FeO to Fe₂O₃')            
         sst.recalculateFeO = st.toggle('Recalculate FeO (wt%) to Fe₂O₃ (wt%) – this adds another column to the filtered dataset', value=False, disabled='FeO (wt%)' not in df.columns, label_visibility='visible', help='The value of FeO (wt%) will be multiplied by 1.111')
         if sst.recalculateFeO:
+            # calculate Fe2O3 from FeO & insert after FeO
             df['Fe2O3 (wt%)'] = df['FeO (wt%)'] * 1.111
             df.insert(df.columns.get_loc('FeO (wt%)'), 'Fe2O3 (wt%)', df.pop('Fe2O3 (wt%)'))
+            # calculate new Total wt% & insert after Total wt%
+            df['Total (wt%) with Fe2O3'] = df['Total (wt%)'] - df['FeO (wt%)'] + df['Fe2O3 (wt%)']
+            df.insert(df.columns.get_loc('Total (wt%)'), 'Total (wt%) with Fe2O3', df.pop('Total (wt%) with Fe2O3'))
         else:
             if 'Fe2O3 (wt%)' in df.columns:
                 # delete Fe2O3 from table if toggle off
