@@ -438,7 +438,7 @@ def kadiLoadFiles(parentContainer = False):
                 # - 3b4. summary standard.txt (standardFile)
                 #####################################################
                 
-                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0):    
+                if (len(mapFiles) > 0 and len(csvSummaryFile) == 1 and len(normalFile) == 1 and len(quickFile) == 1 and len(standardFile) == 1) or (len(mapFiles) == 0 and len(imageFiles) == 0):    
                     
                     # 3b1. load summary[timestamp].csv -> csvSummaryData
                     ######################################################
