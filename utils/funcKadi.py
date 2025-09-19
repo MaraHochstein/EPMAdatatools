@@ -531,6 +531,7 @@ def kadiLoadFiles(parentContainer = False):
                 # 3c. MAPS ONLY
                 # - 3c1. json
                 #################################
+                st.write('Test')
                 
                 if sst.importMaps:
                     if len(mapFiles) > 0 and len(mapJsons) > 0:
@@ -542,6 +543,7 @@ def kadiLoadFiles(parentContainer = False):
                             if len(data) > 0: # json contains something
                                 mapJsonsData[mapJsons[mapJsonID].rstrip('.json')] = data
                                 st.write(mapJsonID)
+       
                             else:
                                 invalidFiles.append(mapJsonName + '-file(s)')
                 st.stop()
