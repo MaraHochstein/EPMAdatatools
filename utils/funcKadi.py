@@ -540,9 +540,9 @@ def kadiLoadFiles(parentContainer = False):
                         for i, mapJsonID in enumerate(mapJsons.keys()):
                             data = json.loads(kadiLoadFile('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + mapJsonID + '/download'))
                             if len(data) > 0: # json contains something
-                                mapJsonsData[mapJsons[mapJsonID].rstrip('.json')] = data
+                                mapJsonsData[mapJsons[mapJsonID].removesuffix('.json')] = data
                                 st.write(str(mapJsons[mapJsonID]))
-                                st.write(str(mapJsons[mapJsonID]).rstrip('.json'))
+                                st.write(str(mapJsons[mapJsonID]).removesuffix('.json'))
                                 st.write(mapJsonsData)
        
                             else:
