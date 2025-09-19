@@ -738,9 +738,9 @@ def kadiLoadFiles(parentContainer = False):
                     #      --> merge both on comment
                     #######################################################################
                     
-                    st.write(csvSummaryData)
-                    st.write(normalData)
-                    st.stop()
+                    #st.write(csvSummaryData)
+                    #st.write(normalData)
+                    #st.stop()
                     
                     try:                           
                         mergeCsvNormal = pd.merge(csvSummaryData, normalData, on='Comment', validate='one_to_one')
