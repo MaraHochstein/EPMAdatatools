@@ -8,3 +8,4 @@ streamlit-extras
 streamlit-oauth
 seaborn
 openpyxl
+streamlit>=1.51.0
