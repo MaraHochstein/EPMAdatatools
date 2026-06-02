@@ -476,12 +476,13 @@ else:
     st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
     # additional files
     if len(sst.additionalFiles) > 0:
-        for additionalFile in sst.additionalFiles:
-            if sst.additionalFiles[additionalFile] not in sst.exportChecks:
-                sst.exportChecks[sst.additionalFiles[additionalFile]] = True
+        with st.expander('Select files to include'):
+            for additionalFile in sst.additionalFiles:
+                if sst.additionalFiles[additionalFile] not in sst.exportChecks:
+                    sst.exportChecks[sst.additionalFiles[additionalFile]] = True
+                    
+                sst.exportChecks[sst.additionalFiles[additionalFile]] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[sst.additionalFiles[additionalFile]], key=str(sst.additionalFiles[additionalFile]) + "Check")
                 
-            sst.exportChecks[sst.additionalFiles[additionalFile]] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[sst.additionalFiles[additionalFile]], key=str(sst.additionalFiles[additionalFile]) + "Check")
-            
         
 
     else:
