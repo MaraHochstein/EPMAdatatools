@@ -52,6 +52,7 @@ def compileZipImg():
 # toggle change of additional files selection
 def toggleAddExport():
     sst.createZipAdd = 0
+    sst.zipBytesMap = 0
     
 # click zip additional files button
 def compileZipAdd():
