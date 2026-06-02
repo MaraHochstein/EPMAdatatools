@@ -359,7 +359,7 @@ else:
         toggleDataMinerals = st.checkbox('Include mineral predictions in file', 
                 value=False, 
                 disabled=True, 
-                help='Please perform ' + st.badge(fn.pageNames['mineral']['name'], icon=fn.pageNames['mineral']['ico'], color='blue') + fn.pageNames['mineral']['ico'] + ' **' + fn.pageNames['mineral']['name'] + '** to include predicted minerals and calculated mineral formulas in the downloaded file.', 
+                help='Please perform ' + fn.pageNames['mineral']['ico'] + ' **' + fn.pageNames['mineral']['name'] + '** to include predicted minerals and calculated mineral formulas in the downloaded file.', 
                 key='selectMineral')
     
     # file generation
