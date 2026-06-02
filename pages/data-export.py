@@ -469,6 +469,17 @@ else:
             st.info('This record contains no images.', icon=':material/visibility_off:')
     
     
+    #####################################
+    # additional files (only download)
+    #####################################
+    st.write('')
+    st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
+    # additional files
+    if len(sst.additionalFiles) > 0:
+        st.write('test')
+    else:
+        st.info('This record contains no additional files.', icon=':material/visibility_off:')
+    
     ###############################
     # rendered element maps pngs
     ###############################

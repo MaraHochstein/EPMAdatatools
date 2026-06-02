@@ -1108,16 +1108,15 @@ def kadiLoadFiles(parentContainer = False):
                 
                 if len(additionalFiles) >= 0:
                     # loading progress bar
-                    addLoaded = 0
-                    progressTxt = ':material/cloud_download: Loading additional data, this may take a while ... (' + str(addLoaded) + '/' + str(len(additionalFiles)) + ' loaded)'
-                    addProgress = st.progress(0, text=progressTxt)
-                    for additionalId in additionalFiles.keys():
-                        #st.write('test ' + str(additionalId))
-                        
-                        addLoaded = addLoaded + 1
-                        progressTxt = ':material/cloud_download: Loading additional data, this may take a while ... (' + str(addLoaded) + '/' + str(len(additionalFiles)) + ' loaded)'                                    
-                        addPercent = (100/len(additionalFiles)*addLoaded)/100
-                        addProgress.progress(addPercent, text=progressTxt)
+                    #addLoaded = 0
+                    #progressTxt = ':material/cloud_download: Loading additional data, this may take a while ... (' + str(addLoaded) + '/' + str(len(additionalFiles)) + ' loaded)'
+                    #addProgress = st.progress(0, text=progressTxt)
+                    #for additionalId in additionalFiles.keys():
+                    #    addLoaded = addLoaded + 1
+                    #    progressTxt = ':material/cloud_download: Loading additional data, this may take a while ... (' + str(addLoaded) + '/' + str(len(additionalFiles)) + ' loaded)'                                    
+                    #    addPercent = (100/len(additionalFiles)*addLoaded)/100
+                    #    addProgress.progress(addPercent, text=progressTxt)
+                    sst.additionalFiles = additionalFiles
                         
                 
                 ################

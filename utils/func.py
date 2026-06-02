@@ -23,7 +23,6 @@ variableList = [
     
     ['additionalFiles', {}],
     
-    
     ['mapData', {}],
     ['mapGeneralData', {}],
     ['mapWdsData', {}],
