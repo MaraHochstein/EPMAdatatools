@@ -292,13 +292,13 @@ st.title('Data Export', anchor=False)
 if not sst.kadiLoaded:
     st.info('Please import your EPMA data in ' + fn.pageNames['import']['ico'] + ' **' + fn.pageNames['import']['name'] + '** in the sidebar menu.', icon=fn.pageNames['import']['ico'])
 else:
-    tab1, tab2, tab3, tab4 = st.tabs([':material/backup_table: Data :primary-badge[*.xlsx]', ':material/photo_library: Images :yellow-badge[*.zip]', ':material/blur_on: Element Maps :orange-badge[*.zip]', ':material/note_stack_add: Additional Files :grey-badge[*.zip]'])
+    tab1, tab2, tab3, tab4 = st.tabs([':material/backup_table: Data', ':material/photo_library: Images', ':material/blur_on: Element Maps', ':material/note_stack_add: Additional Files'])
     
     with tab1:
         #########################
         # xlsx download
         #########################   
-        st.subheader(':material/table_view: Download as Excel Spreadsheet :blue-badge[*.xlsx]', anchor=False)
+        st.subheader(':material/table_view: Download as Excel Spreadsheet :grey-badge[*.xlsx]', anchor=False)
         
         with st.expander('Please choose the data that should be included in the downloaded file:', expanded=True):
             
@@ -459,7 +459,7 @@ else:
         # images 
         ###############   
         st.write('')
-        st.subheader(':material/photo_library: Download images (\*.jpg, \*.tif) as zip-archive', anchor=False)
+        st.subheader(':material/photo_library: Download images :grey-badge[*.tif, *.jpeg] as zip-archive :grey-badge[*.zip]', anchor=False)
         # images
         if len(sst.imageData) > 0:
             if sst.createZipImg == 1:
@@ -478,7 +478,7 @@ else:
         # rendered element maps pngs
         ###############################
         st.write('')
-        st.subheader(':material/blur_on: Download rendered element maps (\*.png) as zip-archive', anchor=False)
+        st.subheader(':material/blur_on: Download rendered element maps :grey-badge[*.png] as zip-archive :grey-badge[*.zip]', anchor=False)
         # element maps
         if len(sst.mapData) > 0:
             if sst.createZipMapPng == 1:
@@ -497,7 +497,7 @@ else:
         # element maps csv
         #########################
         st.write('')
-        st.subheader(':material/blur_on: Download map files (\*.csv) as zip-archive', anchor=False)
+        st.subheader(':material/blur_on: Download map files :grey-badge[*.csv] as zip-archive :grey-badge[*.zip]', anchor=False)
         if len(sst.mapData) > 0:
             if sst.createZipMap == 1:
                 mapZipDownloadButton()
@@ -514,7 +514,7 @@ else:
         #####################################
         # additional files (only download)
         #####################################
-        st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
+        st.subheader(':material/note_stack_add: Download additional files as zip-archive :grey-badge[*.zip]', anchor=False)
         # additional files
         if len(sst.additionalFiles) > 0:
             with st.expander('Select files to include:', expanded=True):
