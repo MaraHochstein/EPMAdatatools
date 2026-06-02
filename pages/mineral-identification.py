@@ -775,9 +775,9 @@ else:
             """
             <ul>
                 <li>
-                    $$
+                    "$$"
                     %_filled
-                    $$
+                    "$$"
                     <img src="./app/static/percentFilled.png" height="20" style="margin-right: 5px; margin-left: 5px">: to what percentage could the sites be filled?
                 </li>
                 <li>
