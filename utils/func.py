@@ -81,6 +81,8 @@ variableList = [
     # for export buttons
     ['createZipImg', 0],
     ['zipBytesImg', 0],
+    ['createZipAdd', 0],
+    ['zipBytesAdd', 0],
     ['createZipMap', 0],
     ['zipBytesMap', 0],
     ['createZipMapPng', 0],

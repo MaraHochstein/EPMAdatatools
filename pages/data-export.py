@@ -49,6 +49,10 @@ filenamePostCond = ''
 def compileZipImg():
     sst.createZipImg = 1
     
+# click zip additional files button
+def compileZipAdd():
+    sst.createZipAdd = 1
+    
 # click zip map csv button
 def compileZipMap():
     sst.createZipMap = 1
@@ -92,6 +96,48 @@ def imgZipDownloadButton():
         
         # download button
         st.download_button('**Save ' + filename + '**', sst.zipBytesImg,
+                    file_name = filename,
+                    icon=':material/folder_zip:',
+                    mime = 'application/zip',
+                    type = 'primary',
+                    )
+                    
+# initiate additional files to zip button
+def addZipDownloadButton():
+    if sst.createZipAdd == 1:
+        if sst.zipBytesAdd == 0:
+            with st.status(':material/sync: Loading additional file data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:        
+                
+                addLoaded = 0
+                progressTxt = ':material/create_new_folder: Adding additional files to zip-archive ... (' + str(addLoaded) + '/' + str(len(sst.exportChecks)) + ' files processed)'
+                addProgress = st.progress(0, text=progressTxt)
+                
+                # create BytesIO object to store zip file in memory
+                zipBytes = io.BytesIO()
+                with zipfile.ZipFile(zipBytes, 'w') as zipFile:
+                    for addId in sst.additionalFiles:
+                        if sst.exportChecks[addId]:
+                            # disable automatic redirection
+                            response = kadiLoadImg('https://kadi4mat.iam.kit.edu/api/records/' + sst.recordID + '/files/' + addId + '/download')
+                            # extract filename from response headers
+                            filename = sst.additionalFiles[addId]
+                            # add file to zip file
+                            zipFile.writestr(filename, response.content)
+                            # update progress
+                            addLoaded = addLoaded + 1
+                            progressTxt = ':material/create_new_folder: Adding additional files to zip-archive ... (' + str(addLoaded) + '/' + str(len(sst.exportChecks)) + ' files processed)'                                   
+                            addPercent = (100/len(sst.exportChecks)*addLoaded)/100
+                            addProgress.progress(addPercent, text=progressTxt)
+                zipBytes.seek(0)
+                sst.zipBytesAdd = zipBytes
+                
+                st.success('Compiling complete! Download your zip-archive below.', icon=':material/folder_zip:')
+                zipStatus.update(label='Compiling complete!', state='complete', expanded=True)
+        
+        filename = sst.recordName + '_additional-files.zip'
+        
+        # download button
+        st.download_button('**Save ' + filename + '**', sst.zipBytesAdd,
                     file_name = filename,
                     icon=':material/folder_zip:',
                     mime = 'application/zip',
@@ -519,12 +565,15 @@ else:
         if len(sst.additionalFiles) > 0:
             with st.expander('Please choose the files that should be included in the zip-archive:', expanded=True):
                 for additionalFile in sst.additionalFiles:
-                    if sst.additionalFiles[additionalFile] not in sst.exportChecks:
-                        sst.exportChecks[sst.additionalFiles[additionalFile]] = True
+                    if additionalFile not in sst.exportChecks:
+                        sst.exportChecks[additionalFile] = True
                         
-                    sst.exportChecks[sst.additionalFiles[additionalFile]] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[sst.additionalFiles[additionalFile]], key=str(sst.additionalFiles[additionalFile]) + "Check")
+                    sst.exportChecks[additionalFile] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[additionalFile], key=str(additionalFile) + "Check")
                     
-            
+            if sst.createZipAdd == 1:
+                addZipDownloadButton()
+            else:
+                st.button('**Click to compile additional files to zip-archive**', type='primary', icon=':material/folder_zip:', key='addDown', on_click=compileZipAdd)
 
         else:
             st.info('This record contains no additional files.', icon=':material/visibility_off:')
