@@ -298,10 +298,9 @@ else:
         #########################
         # xlsx download
         #########################   
-        st.subheader(':material/table_view: Download as Excel Spreadsheet (*.xlsx)', anchor=False)
+        st.subheader(':material/table_view: Download as Excel Spreadsheet (*.xlsx)' + st.badge("Success", icon=":material/check:", color="green"), anchor=False)
         
-        with st.expander('Select data to include'):
-            st.write('Please choose the data that should be included in the downloaded file.')
+        with st.expander('Please choose the data that should be included in the downloaded file:', expanded=True):
             
             # checkboxes
             if not sst.kadiMetaData.empty:
@@ -515,11 +514,10 @@ else:
         #####################################
         # additional files (only download)
         #####################################
-        st.write('')
         st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
         # additional files
         if len(sst.additionalFiles) > 0:
-            with st.expander('Select files to include'):
+            with st.expander('Select files to include:', expanded=True):
                 for additionalFile in sst.additionalFiles:
                     if sst.additionalFiles[additionalFile] not in sst.exportChecks:
                         sst.exportChecks[sst.additionalFiles[additionalFile]] = True
