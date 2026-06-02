@@ -298,7 +298,7 @@ else:
         #########################
         # xlsx download
         #########################   
-        st.subheader(':material/table_view: Download as Excel Spreadsheet (*.xlsx)' + st.badge("Success", icon=":material/check:", color="green"), anchor=False)
+        st.subheader(':material/table_view: Download as Excel Spreadsheet (*.xlsx) :blue-badge[your text here]', anchor=False)
         
         with st.expander('Please choose the data that should be included in the downloaded file:', expanded=True):
             
