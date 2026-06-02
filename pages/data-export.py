@@ -301,7 +301,7 @@ else:
     
     # toggle switches
     if not sst.kadiMetaData.empty:
-        toggleMetadata = st.toggle('Include Kadi4Mat metadata in file', value=True, key='selectMetadata')
+        toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', value=True, key='selectMetadata')
     else:
         toggleMetadata = st.toggle('Include Kadi4Mat metadata in file', 
                 value=False,
