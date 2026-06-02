@@ -775,7 +775,10 @@ else:
             """
             <ul>
                 <li>
-                    $%_{filled}$ <img src="./app/static/percentFilled.png" height="20" style="margin-right: 5px; margin-left: 5px">: to what percentage could the sites be filled?
+                    $$
+                    %_{filled}
+                    $$
+                    <img src="./app/static/percentFilled.png" height="20" style="margin-right: 5px; margin-left: 5px">: to what percentage could the sites be filled?
                 </li>
                 <li>
                     <img src="./app/static/percentUsed.png" height="20" style="margin-right: 5px; margin-left: 5px">: how many percent of the available elements could be used to fill the crystal structure?
