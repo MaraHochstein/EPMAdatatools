@@ -292,237 +292,245 @@ st.title('Data Export', anchor=False)
 if not sst.kadiLoaded:
     st.info('Please import your EPMA data in ' + fn.pageNames['import']['ico'] + ' **' + fn.pageNames['import']['name'] + '** in the sidebar menu.', icon=fn.pageNames['import']['ico'])
 else:
-    #########################
-    # xlsx download
-    #########################   
-    st.subheader(':material/table_view: Download as Excel Spreadsheet (*.xlsx)', anchor=False)
+    tab1, tab2, tab3, tab4 = st.tabs([':material/backup_table: Data', ':material/photo_library: Images', ':material/blur_on: Element Maps', ':material/note_stack_add: Additional Files'])
     
-    with st.expander('Select data to include'):
-        st.write('Please choose the data that should be included in the downloaded file.')
+    with tab1:
+        #########################
+        # xlsx download
+        #########################   
+        st.subheader(':material/table_view: Download as Excel Spreadsheet (*.xlsx)', anchor=False)
         
-        # checkboxes
-        if not sst.kadiMetaData.empty:
-            toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', value=True, key='selectMetadata')
-        else:
-            toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', 
-                    value=False,
-                    disabled=True,
-                    help='No metadata found on Kadi4Mat.',
-                    key='selectMetadata')
+        with st.expander('Select data to include'):
+            st.write('Please choose the data that should be included in the downloaded file.')
+            
+            # checkboxes
+            if not sst.kadiMetaData.empty:
+                toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', value=True, key='selectMetadata')
+            else:
+                toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', 
+                        value=False,
+                        disabled=True,
+                        help='No metadata found on Kadi4Mat.',
+                        key='selectMetadata')
+            
+            if not sst.csvMerged.empty:
+                toggleDataOriginal = st.checkbox('Include merged EPMA data in file', value=True, key='selectOrig')
+            else:
+                toggleDataOriginal = st.checkbox('Include merged EPMA data in file', 
+                        value=False,
+                        disabled=True,
+                        help='No EPMA measurement data found in this record.',
+                        key='selectOrig')
+            
+            if not sst.methodGeneralData.empty and sst.shortMeasCond != {}:
+                toggleConditions = st.checkbox('Include measurement conditions in file:', value=True, key='selectCond')
+                if toggleConditions:
+                    left, right = st.columns((1,20))
+                    left.write('↳')
+                    with right:
+                        toggleConditionsShort = st.checkbox('Compact Measurement Conditions', value=True, key='selectCondShort')
+                        toggleConditionsFull = st.checkbox('Full Measurement Conditions', value=False, key='selectCondFull')
+                        if sst.standardsXlsx != {}:
+                            toggleStandardinfo = st.checkbox('Standard Information', value=True, key='selectStandardinfo')
+                        else:
+                            toggleStandardinfo = st.checkbox('Standard Information',
+                                value=False,
+                                disabled=True,
+                                help='No standard information found in this record.',
+                                key='selectStandardinfo')
+                            toggleStandardinfo = False
+                        
+            else:
+                toggleConditions = st.checkbox('Include measurement conditions in file:',
+                        value=False,
+                        disabled=True,
+                        help='No measurement conditions found in this record.',
+                        key='selectCond')
+                toggleConditionsShort = False
+                toggleConditionsFull = False
+                    
+            if not sst.csvMergedFiltered.empty and sst.dataViewerFilter['filterColumns'] != []:
+                toggleDataFiltered = st.checkbox('Include filtered data in file', value=True, key='selectFilter')
+            else:
+                toggleDataFiltered = st.checkbox('Include filtered data in file', 
+                        value=False, 
+                        disabled=True, 
+                        help='No filters applied. Check out ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** to filter you data first.', 
+                        key='selectFilter')
+            if not sst.csvMergedMinerals.empty:
+                toggleDataMinerals = st.checkbox('Include mineral predictions in file', value=True, key='selectMineral')
+            else:
+                toggleDataMinerals = st.checkbox('Include mineral predictions in file', 
+                        value=False, 
+                        disabled=True, 
+                        help='Please perform ' + fn.pageNames['mineral']['ico'] + ' **' + fn.pageNames['mineral']['name'] + '** to include predicted minerals and calculated mineral formulas in the downloaded file.', 
+                        key='selectMineral')
         
-        if not sst.csvMerged.empty:
-            toggleDataOriginal = st.checkbox('Include merged EPMA data in file', value=True, key='selectOrig')
-        else:
-            toggleDataOriginal = st.checkbox('Include merged EPMA data in file', 
-                    value=False,
-                    disabled=True,
-                    help='No EPMA measurement data found in this record.',
-                    key='selectOrig')
-        
-        if not sst.methodGeneralData.empty and sst.shortMeasCond != {}:
-            toggleConditions = st.checkbox('Include measurement conditions in file:', value=True, key='selectCond')
+        # file generation
+        uploadData = io.BytesIO()
+        ## write dataframes to excel
+        with pd.ExcelWriter(uploadData, engine='xlsxwriter') as writer:
+            workbook=writer.book
+            if toggleMetadata:
+                worksheet0=workbook.add_worksheet('kadi_metadata')
+                writer.sheets['kadi_metadata'] = worksheet0
+                sst.kadiMetaData.to_excel(writer, sheet_name='kadi_metadata', startrow=0, startcol=0)
+            
+            if toggleDataOriginal:
+                worksheet1=workbook.add_worksheet('merged_data')
+                writer.sheets['merged_data'] = worksheet1
+                sst.csvMerged.to_excel(writer, sheet_name='merged_data', startrow=0, startcol=0)
+            
+            if toggleDataFiltered:
+                worksheet2=workbook.add_worksheet('filtered_data')
+                writer.sheets['filtered_data'] = worksheet2
+                sst.csvMergedFiltered.to_excel(writer, sheet_name='filtered_data', startrow=0, startcol=0)
+
+            if toggleDataMinerals:
+                worksheet3=workbook.add_worksheet('mineral_predictions')
+                writer.sheets['mineral_predictions'] = worksheet3
+                ## rename some keys
+                keyList = sst.csvMergedMinerals.columns.tolist()
+                keysRemove = ['1st Mineral formula','2nd Mineral formula']
+                for key in keysRemove:
+                    if key in keyList:
+                        keyList.remove(key)
+                rename = {'1st Mineral formula_export': '1st Mineral formula', '2nd Mineral formula_export': '2nd Mineral formula'}
+                sst.csvMergedMinerals[
+                                        keyList
+                                        ].rename(
+                                                    columns=rename
+                                                ).to_excel(
+                                                            writer,
+                                                            sheet_name='mineral_predictions',
+                                                            startrow=0, 
+                                                            startcol=0
+                                                        )
+                ## references
+                worksheet4=workbook.add_worksheet('references_mineral-calculation')
+                writer.sheets['references_mineral-calculation'] = worksheet4
+                pd.DataFrame(sorted(sst.referenceDict.items()), columns=['Author (Year)', 'DOI']).to_excel(writer, sheet_name='references_mineral-calculation', index=False)
+            
             if toggleConditions:
-                left, right = st.columns((1,20))
-                left.write('↳')
-                with right:
-                    toggleConditionsShort = st.checkbox('Compact Measurement Conditions', value=True, key='selectCondShort')
-                    toggleConditionsFull = st.checkbox('Full Measurement Conditions', value=False, key='selectCondFull')
-                    if sst.standardsXlsx != {}:
-                        toggleStandardinfo = st.checkbox('Standard Information', value=True, key='selectStandardinfo')
-                    else:
-                        toggleStandardinfo = st.checkbox('Standard Information',
-                            value=False,
-                            disabled=True,
-                            help='No standard information found in this record.',
-                            key='selectStandardinfo')
-                        toggleStandardinfo = False
+                # compact
+                if toggleConditionsShort:
+                    worksheet5=workbook.add_worksheet('conditions_short')
+                    writer.sheets['conditions_short'] = worksheet5
+                    worksheet5.write(0, 0, 'Summary of Measurement Conditions')
+                    sst.shortMeasCond[0].to_excel(writer, sheet_name='conditions_short', startrow=1, startcol=0)
+                    sst.shortMeasCond[1].to_excel(writer, sheet_name='conditions_short', startrow=len(sst.shortMeasCond[0])+4, startcol=0)
+                # full
+                if toggleConditionsFull:
+                    worksheet6=workbook.add_worksheet('conditions_full')
+                    writer.sheets['conditions_full'] = worksheet6
+                    worksheet6.write(0, 0, 'General Information')
+                    sst.methodGeneralData.to_excel(writer, sheet_name='conditions_full', startrow=1, startcol=0)
+                    worksheet6.write(len(sst.methodGeneralData)+3, 0, 'Measurement Conditions')
+                    sst.methodSampleData.to_excel(writer, sheet_name='conditions_full', startrow=len(sst.methodGeneralData)+4, startcol=0)
+                    worksheet6.write(len(sst.methodGeneralData)+len(sst.methodSampleData)+7, 0, 'Standard Data')
+                    sst.methodStdData.to_excel(writer, sheet_name='conditions_full', startrow=len(sst.methodGeneralData)+len(sst.methodSampleData)+8, startcol=0)
+                # standard information
+                if toggleStandardinfo:
+                    worksheet7=workbook.add_worksheet('standard_information')
+                    writer.sheets['standard_information'] = worksheet7
+                    startRow = 0
+                    for sheet in sst.standardsXlsxExport:
+                        worksheet7.write(startRow, 0, sheet)
+                        sst.standardsXlsxExport[sheet].to_excel(writer, sheet_name='standard_information', startrow=startRow+1, startcol=0)
+                        startRow = startRow + len(sst.standardsXlsxExport[sheet].data)+3
+
+            ## close pandas excel writer and output excel file to uploadData
+            writer.close()
+            
+            filename = sst.recordName + '_data-export.xlsx'
+            
+            # download button
+            st.download_button(
+                label = '**Save ' + filename + '**',
+                data = uploadData,
+                file_name = filename,
+                mime = 'application/vnd.ms-excel',
+                type = 'primary',
+                icon=':material/table_convert:',
+                    )
+    
+    
+    with tab2:
+        ###############
+        # images 
+        ###############   
+        st.write('')
+        st.subheader(':material/photo_library: Download images (\*.jpg, \*.tif) as zip-archive', anchor=False)
+        # images
+        if len(sst.imageData) > 0:
+            if sst.createZipImg == 1:
+                imgZipDownloadButton()
+            else:
+                st.button('**Click to compile images to zip-archive**', type='primary', icon=':material/folder_zip:', key='imgDown', on_click=compileZipImg)
+        else:
+            if not sst.importImages:
+                st.info('Images were excluded from import. Clear the import and reload the dataset with image import enabled to download image files for this record.', icon=':material/sync_disabled:')
+            else:
+                st.info('This record contains no images.', icon=':material/visibility_off:')
+    
+    
+    with tab3:
+        ###############################
+        # rendered element maps pngs
+        ###############################
+        st.write('')
+        st.subheader(':material/blur_on: Download rendered element maps (\*.png) as zip-archive', anchor=False)
+        # element maps
+        if len(sst.mapData) > 0:
+            if sst.createZipMapPng == 1:
+                mapPngZipDownloadButton()
+            else:
+                st.info('Map images will be downloaded as *.png-files. Element maps that have not been rendered will be exported with standard display settings. You can adjust these settings in the menu under ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** :material/arrow_forward: **:material/blur_on: Element Maps**. Rendering missing element maps may take some time.', icon=':material/warning:')
+                st.button('**Click to compile rendered maps to zip-archive**', type='primary', icon=':material/folder_zip:', key='mapPngDown', on_click=compileZipMapPng)
+        else:
+            if not sst.importMaps:
+                st.info('Element maps were excluded from import. Clear the import and reload the dataset with map import enabled to download element maps for this record.', icon=':material/sync_disabled:')
+            else:
+                st.info('This record contains no element maps.', icon=':material/visibility_off:')
+        
+        
+        #########################
+        # element maps csv
+        #########################
+        st.write('')
+        st.subheader(':material/blur_on: Download map files (\*.csv) as zip-archive', anchor=False)
+        if len(sst.mapData) > 0:
+            if sst.createZipMap == 1:
+                mapZipDownloadButton()
+            else:
+                st.button('**Click to compile map data to zip-archive**', type='primary', icon=':material/folder_zip:', key='mapDown', on_click=compileZipMap)            
+        else:
+            if not sst.importMaps:
+                st.info('Element maps were excluded from import. Clear the import and reload the dataset with map import enabled to download element maps for this record.', icon=':material/sync_disabled:')
+            else:
+                st.info('This record contains no element maps.', icon=':material/visibility_off:')
+    
+    
+    with tab4:
+        #####################################
+        # additional files (only download)
+        #####################################
+        st.write('')
+        st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
+        # additional files
+        if len(sst.additionalFiles) > 0:
+            with st.expander('Select files to include'):
+                for additionalFile in sst.additionalFiles:
+                    if sst.additionalFiles[additionalFile] not in sst.exportChecks:
+                        sst.exportChecks[sst.additionalFiles[additionalFile]] = True
+                        
+                    sst.exportChecks[sst.additionalFiles[additionalFile]] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[sst.additionalFiles[additionalFile]], key=str(sst.additionalFiles[additionalFile]) + "Check")
                     
-        else:
-            toggleConditions = st.checkbox('Include measurement conditions in file:',
-                    value=False,
-                    disabled=True,
-                    help='No measurement conditions found in this record.',
-                    key='selectCond')
-            toggleConditionsShort = False
-            toggleConditionsFull = False
-                
-        if not sst.csvMergedFiltered.empty and sst.dataViewerFilter['filterColumns'] != []:
-            toggleDataFiltered = st.checkbox('Include filtered data in file', value=True, key='selectFilter')
-        else:
-            toggleDataFiltered = st.checkbox('Include filtered data in file', 
-                    value=False, 
-                    disabled=True, 
-                    help='No filters applied. Check out ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** to filter you data first.', 
-                    key='selectFilter')
-        if not sst.csvMergedMinerals.empty:
-            toggleDataMinerals = st.checkbox('Include mineral predictions in file', value=True, key='selectMineral')
-        else:
-            toggleDataMinerals = st.checkbox('Include mineral predictions in file', 
-                    value=False, 
-                    disabled=True, 
-                    help='Please perform ' + fn.pageNames['mineral']['ico'] + ' **' + fn.pageNames['mineral']['name'] + '** to include predicted minerals and calculated mineral formulas in the downloaded file.', 
-                    key='selectMineral')
-    
-    # file generation
-    uploadData = io.BytesIO()
-    ## write dataframes to excel
-    with pd.ExcelWriter(uploadData, engine='xlsxwriter') as writer:
-        workbook=writer.book
-        if toggleMetadata:
-            worksheet0=workbook.add_worksheet('kadi_metadata')
-            writer.sheets['kadi_metadata'] = worksheet0
-            sst.kadiMetaData.to_excel(writer, sheet_name='kadi_metadata', startrow=0, startcol=0)
-        
-        if toggleDataOriginal:
-            worksheet1=workbook.add_worksheet('merged_data')
-            writer.sheets['merged_data'] = worksheet1
-            sst.csvMerged.to_excel(writer, sheet_name='merged_data', startrow=0, startcol=0)
-        
-        if toggleDataFiltered:
-            worksheet2=workbook.add_worksheet('filtered_data')
-            writer.sheets['filtered_data'] = worksheet2
-            sst.csvMergedFiltered.to_excel(writer, sheet_name='filtered_data', startrow=0, startcol=0)
+            
 
-        if toggleDataMinerals:
-            worksheet3=workbook.add_worksheet('mineral_predictions')
-            writer.sheets['mineral_predictions'] = worksheet3
-            ## rename some keys
-            keyList = sst.csvMergedMinerals.columns.tolist()
-            keysRemove = ['1st Mineral formula','2nd Mineral formula']
-            for key in keysRemove:
-                if key in keyList:
-                    keyList.remove(key)
-            rename = {'1st Mineral formula_export': '1st Mineral formula', '2nd Mineral formula_export': '2nd Mineral formula'}
-            sst.csvMergedMinerals[
-                                    keyList
-                                    ].rename(
-                                                columns=rename
-                                            ).to_excel(
-                                                        writer,
-                                                        sheet_name='mineral_predictions',
-                                                        startrow=0, 
-                                                        startcol=0
-                                                    )
-            ## references
-            worksheet4=workbook.add_worksheet('references_mineral-calculation')
-            writer.sheets['references_mineral-calculation'] = worksheet4
-            pd.DataFrame(sorted(sst.referenceDict.items()), columns=['Author (Year)', 'DOI']).to_excel(writer, sheet_name='references_mineral-calculation', index=False)
-        
-        if toggleConditions:
-            # compact
-            if toggleConditionsShort:
-                worksheet5=workbook.add_worksheet('conditions_short')
-                writer.sheets['conditions_short'] = worksheet5
-                worksheet5.write(0, 0, 'Summary of Measurement Conditions')
-                sst.shortMeasCond[0].to_excel(writer, sheet_name='conditions_short', startrow=1, startcol=0)
-                sst.shortMeasCond[1].to_excel(writer, sheet_name='conditions_short', startrow=len(sst.shortMeasCond[0])+4, startcol=0)
-            # full
-            if toggleConditionsFull:
-                worksheet6=workbook.add_worksheet('conditions_full')
-                writer.sheets['conditions_full'] = worksheet6
-                worksheet6.write(0, 0, 'General Information')
-                sst.methodGeneralData.to_excel(writer, sheet_name='conditions_full', startrow=1, startcol=0)
-                worksheet6.write(len(sst.methodGeneralData)+3, 0, 'Measurement Conditions')
-                sst.methodSampleData.to_excel(writer, sheet_name='conditions_full', startrow=len(sst.methodGeneralData)+4, startcol=0)
-                worksheet6.write(len(sst.methodGeneralData)+len(sst.methodSampleData)+7, 0, 'Standard Data')
-                sst.methodStdData.to_excel(writer, sheet_name='conditions_full', startrow=len(sst.methodGeneralData)+len(sst.methodSampleData)+8, startcol=0)
-            # standard information
-            if toggleStandardinfo:
-                worksheet7=workbook.add_worksheet('standard_information')
-                writer.sheets['standard_information'] = worksheet7
-                startRow = 0
-                for sheet in sst.standardsXlsxExport:
-                    worksheet7.write(startRow, 0, sheet)
-                    sst.standardsXlsxExport[sheet].to_excel(writer, sheet_name='standard_information', startrow=startRow+1, startcol=0)
-                    startRow = startRow + len(sst.standardsXlsxExport[sheet].data)+3
-
-        ## close pandas excel writer and output excel file to uploadData
-        writer.close()
-        
-        filename = sst.recordName + '_data-export.xlsx'
-        
-        # download button
-        st.download_button(
-            label = '**Save ' + filename + '**',
-            data = uploadData,
-            file_name = filename,
-            mime = 'application/vnd.ms-excel',
-            type = 'primary',
-            icon=':material/table_convert:',
-                )
-    
-    
-    ###############
-    # images 
-    ###############   
-    st.write('')
-    st.subheader(':material/photo_library: Download images (\*.jpg, \*.tif) as zip-archive', anchor=False)
-    # images
-    if len(sst.imageData) > 0:
-        if sst.createZipImg == 1:
-            imgZipDownloadButton()
         else:
-            st.button('**Click to compile images to zip-archive**', type='primary', icon=':material/folder_zip:', key='imgDown', on_click=compileZipImg)
-    else:
-        if not sst.importImages:
-            st.info('Images were excluded from import. Clear the import and reload the dataset with image import enabled to download image files for this record.', icon=':material/sync_disabled:')
-        else:
-            st.info('This record contains no images.', icon=':material/visibility_off:')
+            st.info('This record contains no additional files.', icon=':material/visibility_off:')
     
-    
-    #####################################
-    # additional files (only download)
-    #####################################
-    st.write('')
-    st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
-    # additional files
-    if len(sst.additionalFiles) > 0:
-        with st.expander('Select files to include'):
-            for additionalFile in sst.additionalFiles:
-                if sst.additionalFiles[additionalFile] not in sst.exportChecks:
-                    sst.exportChecks[sst.additionalFiles[additionalFile]] = True
-                    
-                sst.exportChecks[sst.additionalFiles[additionalFile]] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[sst.additionalFiles[additionalFile]], key=str(sst.additionalFiles[additionalFile]) + "Check")
-                
-        
-
-    else:
-        st.info('This record contains no additional files.', icon=':material/visibility_off:')
-    
-    ###############################
-    # rendered element maps pngs
-    ###############################
-    st.write('')
-    st.subheader(':material/blur_on: Download rendered element maps (\*.png) as zip-archive', anchor=False)
-    # element maps
-    if len(sst.mapData) > 0:
-        if sst.createZipMapPng == 1:
-            mapPngZipDownloadButton()
-        else:
-            st.info('Map images will be downloaded as *.png-files. Element maps that have not been rendered will be exported with standard display settings. You can adjust these settings in the menu under ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** :material/arrow_forward: **:material/blur_on: Element Maps**. Rendering missing element maps may take some time.', icon=':material/warning:')
-            st.button('**Click to compile rendered maps to zip-archive**', type='primary', icon=':material/folder_zip:', key='mapPngDown', on_click=compileZipMapPng)
-    else:
-        if not sst.importMaps:
-            st.info('Element maps were excluded from import. Clear the import and reload the dataset with map import enabled to download element maps for this record.', icon=':material/sync_disabled:')
-        else:
-            st.info('This record contains no element maps.', icon=':material/visibility_off:')
-    
-    
-    #########################
-    # element maps csv
-    #########################
-    st.write('')
-    st.subheader(':material/blur_on: Download map files (\*.csv) as zip-archive', anchor=False)
-    if len(sst.mapData) > 0:
-        if sst.createZipMap == 1:
-            mapZipDownloadButton()
-        else:
-            st.button('**Click to compile map data to zip-archive**', type='primary', icon=':material/folder_zip:', key='mapDown', on_click=compileZipMap)            
-    else:
-        if not sst.importMaps:
-            st.info('Element maps were excluded from import. Clear the import and reload the dataset with map import enabled to download element maps for this record.', icon=':material/sync_disabled:')
-        else:
-            st.info('This record contains no element maps.', icon=':material/visibility_off:')
     
     st.divider()
     
