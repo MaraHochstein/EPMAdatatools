@@ -775,7 +775,7 @@ else:
             r"""
             - $\%_{filled}$: to what percentage could the sites be filled?
             - $\%_{used}$: how many percent of the available elements could be used to fill the crystal structure?
-            - $\%_{predicted}$: the weighted mean of $\%_{filled}$ and $\%_{used}$, with $\%_{used}$ assigned a higher weight: $\%_{predicted} = \frac{1*\%_{filled}+1.5*\%_{used}}{2.5}$
+            - $\%_{predicted}$: the weighted mean of $\%_{filled}$ and $\%_{used}$, with $\%_{used}$ assigned a higher weight: $\\{\%_{predicted} = \frac{1*\%_{filled}+1.5*\%_{used}}{2.5}}$
             <ul>
                 <li>
                     <img src="./app/static/percentFilled.png" height="20" style="margin-right: 5px; margin-left: 5px">: to what percentage could the sites be filled?
