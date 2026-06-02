@@ -776,17 +776,6 @@ else:
             - $\%_{filled}$: to what percentage could the sites be filled?
             - $\%_{used}$: how many percent of the available elements could be used to fill the crystal structure?
             - $\%_{predicted}$: the weighted mean of $\%_{filled}$ and $\%_{used}$, with $\%_{used}$ assigned a higher weight: $\\{\%_{predicted} = \frac{1*\%_{filled}+1.5*\%_{used}}{2.5}}$
-            <ul>
-                <li>
-                    <img src="./app/static/percentFilled.png" height="20" style="margin-right: 5px; margin-left: 5px">: to what percentage could the sites be filled?
-                </li>
-                <li>
-                    <img src="./app/static/percentUsed.png" height="20" style="margin-right: 5px; margin-left: 5px">: how many percent of the available elements could be used to fill the crystal structure?
-                </li>
-                <li>
-                    <img src="./app/static/percentPredicted.png" height="20" style="margin-right: 5px; margin-left: 5px">: the weighted mean of <img src="./app/static/percentFilled.png" height="20" style="margin-right: 5px; margin-left: 5px"> and <img src="./app/static/percentUsed.png" height="20" style="margin-right: 5px; margin-left: 5px">, with <img src="./app/static/percentUsed.png" height="20" style="margin-right: 5px; margin-left: 5px"> assigned a higher weight:<img src="./app/static/percentPredictedFormula.png" height="45" style="margin-left: 15px">
-                </li>
-            </ul>
             """,unsafe_allow_html=True)
             st.write('')
         
