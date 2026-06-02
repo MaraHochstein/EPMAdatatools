@@ -459,7 +459,7 @@ else:
         # images 
         ###############   
         st.write('')
-        st.subheader(':material/photo_library: Download images :grey-badge[*.tif, *.jpeg] as zip-archive :grey-badge[*.zip]', anchor=False)
+        st.subheader(':material/photo_library: Download images :grey-badge[*.tif, *.jpeg] as zip-archive', anchor=False)
         # images
         if len(sst.imageData) > 0:
             if sst.createZipImg == 1:
@@ -478,7 +478,7 @@ else:
         # rendered element maps pngs
         ###############################
         st.write('')
-        st.subheader(':material/blur_on: Download rendered element maps :grey-badge[*.png] as zip-archive :grey-badge[*.zip]', anchor=False)
+        st.subheader(':material/blur_on: Download rendered element maps :grey-badge[*.png] as zip-archive', anchor=False)
         # element maps
         if len(sst.mapData) > 0:
             if sst.createZipMapPng == 1:
@@ -497,7 +497,7 @@ else:
         # element maps csv
         #########################
         st.write('')
-        st.subheader(':material/blur_on: Download map files :grey-badge[*.csv] as zip-archive :grey-badge[*.zip]', anchor=False)
+        st.subheader(':material/blur_on: Download map files :grey-badge[*.csv] as zip-archive', anchor=False)
         if len(sst.mapData) > 0:
             if sst.createZipMap == 1:
                 mapZipDownloadButton()
@@ -514,7 +514,7 @@ else:
         #####################################
         # additional files (only download)
         #####################################
-        st.subheader(':material/note_stack_add: Download additional files as zip-archive :grey-badge[*.zip]', anchor=False)
+        st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
         # additional files
         if len(sst.additionalFiles) > 0:
             with st.expander('Select files to include:', expanded=True):
