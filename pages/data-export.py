@@ -477,12 +477,11 @@ else:
     # additional files
     if len(sst.additionalFiles) > 0:
         for additionalFile in sst.additionalFiles:
-            if additionalFile not in sst.exportChecks:
-                sst.exportChecks[additionalFile] = True
+            if sst.additionalFiles[additionalFile] not in sst.exportChecks:
+                sst.exportChecks[sst.additionalFiles[additionalFile]] = True
                 
-            sst.exportChecks[additionalFile] = st.checkbox(additionalFile, value=sst.exportChecks[additionalFile], key=str(additionalFile) + "Check")
-            st.write(additionalFile)
-            st.write(sst.additionalFile[additionalFile])
+            sst.exportChecks[sst.additionalFiles[additionalFile]] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[sst.additionalFiles[additionalFile]], key=str(sst.additionalFiles[additionalFile]) + "Check")
+            
         
 
     else:
