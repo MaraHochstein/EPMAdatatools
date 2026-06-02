@@ -1114,7 +1114,7 @@ def kadiLoadFiles(parentContainer = False):
                     for additionalId in additionalFiles.keys():
                         st.write('test ' + str(additionalId))
                         
-                
+                st.stop()
                 ################
                 # 9. Success
                 ################
