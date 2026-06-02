@@ -413,7 +413,7 @@ else:
                         left, right = st.columns((1,1))
                         with left:
                             st.table(sst.shortMeasCond[0])
-                        st.dataframe(sst.shortMeasCond[1], hide_index=1, use_container_width=1)
+                        st.dataframe(sst.shortMeasCond[1], hide_index=1, height='content')
                 
                 # Standards.xlsx
                 with tab3a2:                    
