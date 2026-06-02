@@ -94,21 +94,32 @@ def kadiGetGroupRecords():
         response = kadiGetData('groups/158/records?per_page=100') # per_page max = 100
         maxPages = response.json()['_pagination']['total_pages'] # get total pages of files for this record (one page has 100 files max)
         page=1
-        timeBreakStop = False
-        timeBreak = pd.Timestamp((pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=3)).isoformat()) # time now in format like kadi 'last modified' field - 6 month
-        while page<(maxPages+1) and not timeBreakStop: # cycle trough pages
+        
+        #### - Version ohne Zeitlimit - ####
+        while page<(maxPages+1): # cycle trough pages
             response = kadiGetData('groups/158/records?per_page=100&page=' + str(page))
             allItems = response.json()
             # check item ids & names
             for item in allItems['items']:
-                
-                # cycle as long as records are newer than 3 month ago
-                if pd.Timestamp(item['last_modified']) > timeBreak:
-                    sst.userRecords[item['id']] = item['identifier']
-                else:
-                    timeBreakStop = True
-                    break
+                sst.userRecords[item['id']] = item['identifier']
             page+=1
+        
+        #### - Version mit Zeitlimit - ####
+        #timeBreakStop = False
+        #timeBreak = pd.Timestamp((pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=3)).isoformat()) # time now in format like kadi 'last modified' field - 6 month
+        #while page<(maxPages+1) and not timeBreakStop: # cycle trough pages
+        #    response = kadiGetData('groups/158/records?per_page=100&page=' + str(page))
+        #    allItems = response.json()
+        #    # check item ids & names
+        #    for item in allItems['items']:
+        #        
+        #        # cycle as long as records are newer than 3 month ago
+        #        if pd.Timestamp(item['last_modified']) > timeBreak:
+        #            sst.userRecords[item['id']] = item['identifier']
+        #        else:
+        #            timeBreakStop = True
+        #            break
+        #    page+=1
                 
 
 # get kadi Metadata to session state
