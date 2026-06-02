@@ -22,6 +22,7 @@ variableList = [
     ['imageData', []],
     
     ['additionalFiles', {}],
+    ['exportChecks', {}],
     
     ['mapData', {}],
     ['mapGeneralData', {}],

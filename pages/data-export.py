@@ -476,7 +476,15 @@ else:
     st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
     # additional files
     if len(sst.additionalFiles) > 0:
-        st.write('test')
+        for additionalFile in sst.additionalFiles:
+            if additionalFile not in sst.exportChecks:
+                sst.exportChecks[additionalFile] = True
+                
+            sst.exportChecks[additionalFile] = st.checkbox(additionalFile, value=sst.exportChecks[additionalFile], key=str(additionalFile) + "Check")
+            st.write(additionalFile)
+            st.write(sst.additionalFile[additionalFile])
+        
+
     else:
         st.info('This record contains no additional files.', icon=':material/visibility_off:')
     

@@ -164,7 +164,7 @@ def kadiLoadFiles(parentContainer = False):
                 # Init & Clean
                 ################
                 # clear from previous upload (if upload was only partly successful)
-                sstVars = ['kadiLoaded', 'kadiMetaData', 'condElements', 'condInfos', 'condMapInfos', 'condSamples', 'condMapSamples', 'condStd', 'methodGeneralData', 'methodSampleData', 'methodStdData', 'shortMeasCond', 'standardsXlsx', 'standardsXlsxExport', 'csvMerged', 'kadiFilter', 'imageData', 'imageFiles', 'additionalFiles', 'mapData', 'mapFilter', 'mapGeneralData', 'mapWdsData', 'mapEdsData', 'qualiConditions', 'methodQualiGeneralData', 'qualiSpectra', 'methodQualiSpecData', 'qualitativeSpectraXlsx']
+                sstVars = ['kadiLoaded', 'kadiMetaData', 'condElements', 'condInfos', 'condMapInfos', 'condSamples', 'condMapSamples', 'condStd', 'methodGeneralData', 'methodSampleData', 'methodStdData', 'shortMeasCond', 'standardsXlsx', 'standardsXlsxExport', 'csvMerged', 'kadiFilter', 'imageData', 'imageFiles', 'additionalFiles', 'exportChecks', 'mapData', 'mapFilter', 'mapGeneralData', 'mapWdsData', 'mapEdsData', 'qualiConditions', 'methodQualiGeneralData', 'qualiSpectra', 'methodQualiSpecData', 'qualitativeSpectraXlsx']
                 for var in sstVars:
                     fn.resetVar(var)
                 
@@ -210,6 +210,7 @@ def kadiLoadFiles(parentContainer = False):
                 mapFilter = {}
                 
                 additionalFiles = {}
+                exportChecks = {}
                 
                 # get kadi metadata for record
                 st.write(':material/cloud_download: Getting metadata from Kadi4Mat ...')
@@ -1155,7 +1156,7 @@ def kadiLoadFile(url):
     return content
 
 
-# get content from kadi img file
+# get content from kadi file
 @st.cache_data(show_spinner=False)
 def kadiLoadImg(url):
     if sst.kadiPAT == '':
