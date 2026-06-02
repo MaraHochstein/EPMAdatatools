@@ -1112,9 +1112,14 @@ def kadiLoadFiles(parentContainer = False):
                     progressTxt = ':material/cloud_download: Loading additional data, this may take a while ... (' + str(addLoaded) + '/' + str(len(additionalFiles)) + ' loaded)'
                     addProgress = st.progress(0, text=progressTxt)
                     for additionalId in additionalFiles.keys():
-                        st.write('test ' + str(additionalId))
+                        #st.write('test ' + str(additionalId))
                         
-                st.stop()
+                        addLoaded = addLoaded + 1
+                        progressTxt = ':material/cloud_download: Loading additional data, this may take a while ... (' + str(addLoaded) + '/' + str(len(additionalFiles)) + ' loaded)'                                    
+                        addPercent = (100/len(additionalFiles)*addLoaded)/100
+                        addProgress.progress(addPercent, text=progressTxt)
+                        
+                
                 ################
                 # 9. Success
                 ################
