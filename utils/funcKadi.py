@@ -88,7 +88,7 @@ def kadiGetUserRecords():
 
 # get records from group
 def kadiGetGroupRecords():
-    with st.spinner('Loading latest records (3 month) from IfG GUF, please wait...', show_time=True):
+    with st.spinner('Loading records from IfG GUF, please wait...', show_time=True):
         # clear from previous run
         sst.userRecords = {}
         response = kadiGetData('groups/158/records?per_page=100') # per_page max = 100
