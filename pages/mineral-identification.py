@@ -773,9 +773,10 @@ else:
             st.markdown('The probability of predicted minerals is calculated with respect to the site occupation and the amount of available elements (measured values). These values are calculated:')
             st.markdown(
             r"""
+            $\frac{a}{b}=1$ 
             <ul>
                 <li>
-                    $\frac{a}{b}=1$ <img src="./app/static/percentFilled.png" height="20" style="margin-right: 5px; margin-left: 5px">: to what percentage could the sites be filled?
+                    <img src="./app/static/percentFilled.png" height="20" style="margin-right: 5px; margin-left: 5px">: to what percentage could the sites be filled?
                 </li>
                 <li>
                     <img src="./app/static/percentUsed.png" height="20" style="margin-right: 5px; margin-left: 5px">: how many percent of the available elements could be used to fill the crystal structure?
