@@ -114,7 +114,7 @@ def addZipDownloadButton():
             with st.status(':material/sync: Loading additional file data and compiling zip-archive, please wait ...', expanded = True) as zipStatus:        
                 
                 addLoaded = 0
-                progressTxt = ':material/create_new_folder: Adding additional files to zip-archive ... (' + str(addLoaded) + '/' + str(len(sst.exportChecks)) + ' files processed)'
+                progressTxt = ':material/create_new_folder: Adding additional files to zip-archive ... (' + str(addLoaded) + '/' + str(sum(sst.exportChecks.values())) + ' files processed)'
                 addProgress = st.progress(0, text=progressTxt)
                 
                 # create BytesIO object to store zip file in memory
@@ -130,8 +130,8 @@ def addZipDownloadButton():
                             zipFile.writestr(filename, response.content)
                             # update progress
                             addLoaded = addLoaded + 1
-                            progressTxt = ':material/create_new_folder: Adding additional files to zip-archive ... (' + str(addLoaded) + '/' + str(len(sst.exportChecks)) + ' files processed)'                                   
-                            addPercent = (100/len(sst.exportChecks)*addLoaded)/100
+                            progressTxt = ':material/create_new_folder: Adding additional files to zip-archive ... (' + str(addLoaded) + '/' + str(sum(sst.exportChecks.values())) + ' files processed)'                                   
+                            addPercent = (100/sum(sst.exportChecks.values())*addLoaded)/100
                             addProgress.progress(addPercent, text=progressTxt)
                 zipBytes.seek(0)
                 sst.zipBytesAdd = zipBytes
