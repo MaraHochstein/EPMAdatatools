@@ -297,70 +297,71 @@ else:
     #########################   
     st.subheader(':material/table_view: Download as Excel Spreadsheet (*.xlsx)', anchor=False)
     
-    st.write('Please choose the data that should be included in the downloaded file.')
-    
-    # checkboxes
-    if not sst.kadiMetaData.empty:
-        toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', value=True, key='selectMetadata')
-    else:
-        toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', 
-                value=False,
-                disabled=True,
-                help='No metadata found on Kadi4Mat.',
-                key='selectMetadata')
-    
-    if not sst.csvMerged.empty:
-        toggleDataOriginal = st.checkbox('Include merged EPMA data in file', value=True, key='selectOrig')
-    else:
-        toggleDataOriginal = st.checkbox('Include merged EPMA data in file', 
-                value=False,
-                disabled=True,
-                help='No EPMA measurement data found in this record.',
-                key='selectOrig')
-    
-    if not sst.methodGeneralData.empty and sst.shortMeasCond != {}:
-        toggleConditions = st.checkbox('Include measurement conditions in file:', value=True, key='selectCond')
-        if toggleConditions:
-            left, right = st.columns((1,20))
-            left.write('↳')
-            with right:
-                toggleConditionsShort = st.checkbox('Compact Measurement Conditions', value=True, key='selectCondShort')
-                toggleConditionsFull = st.checkbox('Full Measurement Conditions', value=False, key='selectCondFull')
-                if sst.standardsXlsx != {}:
-                    toggleStandardinfo = st.checkbox('Standard Information', value=True, key='selectStandardinfo')
-                else:
-                    toggleStandardinfo = st.checkbox('Standard Information',
-                        value=False,
-                        disabled=True,
-                        help='No standard information found in this record.',
-                        key='selectStandardinfo')
-                    toggleStandardinfo = False
+    with st.expander('Select data to include'):
+        st.write('Please choose the data that should be included in the downloaded file.')
+        
+        # checkboxes
+        if not sst.kadiMetaData.empty:
+            toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', value=True, key='selectMetadata')
+        else:
+            toggleMetadata = st.checkbox('Include Kadi4Mat metadata in file', 
+                    value=False,
+                    disabled=True,
+                    help='No metadata found on Kadi4Mat.',
+                    key='selectMetadata')
+        
+        if not sst.csvMerged.empty:
+            toggleDataOriginal = st.checkbox('Include merged EPMA data in file', value=True, key='selectOrig')
+        else:
+            toggleDataOriginal = st.checkbox('Include merged EPMA data in file', 
+                    value=False,
+                    disabled=True,
+                    help='No EPMA measurement data found in this record.',
+                    key='selectOrig')
+        
+        if not sst.methodGeneralData.empty and sst.shortMeasCond != {}:
+            toggleConditions = st.checkbox('Include measurement conditions in file:', value=True, key='selectCond')
+            if toggleConditions:
+                left, right = st.columns((1,20))
+                left.write('↳')
+                with right:
+                    toggleConditionsShort = st.checkbox('Compact Measurement Conditions', value=True, key='selectCondShort')
+                    toggleConditionsFull = st.checkbox('Full Measurement Conditions', value=False, key='selectCondFull')
+                    if sst.standardsXlsx != {}:
+                        toggleStandardinfo = st.checkbox('Standard Information', value=True, key='selectStandardinfo')
+                    else:
+                        toggleStandardinfo = st.checkbox('Standard Information',
+                            value=False,
+                            disabled=True,
+                            help='No standard information found in this record.',
+                            key='selectStandardinfo')
+                        toggleStandardinfo = False
+                    
+        else:
+            toggleConditions = st.checkbox('Include measurement conditions in file:',
+                    value=False,
+                    disabled=True,
+                    help='No measurement conditions found in this record.',
+                    key='selectCond')
+            toggleConditionsShort = False
+            toggleConditionsFull = False
                 
-    else:
-        toggleConditions = st.checkbox('Include measurement conditions in file:',
-                value=False,
-                disabled=True,
-                help='No measurement conditions found in this record.',
-                key='selectCond')
-        toggleConditionsShort = False
-        toggleConditionsFull = False
-            
-    if not sst.csvMergedFiltered.empty and sst.dataViewerFilter['filterColumns'] != []:
-        toggleDataFiltered = st.checkbox('Include filtered data in file', value=True, key='selectFilter')
-    else:
-        toggleDataFiltered = st.checkbox('Include filtered data in file', 
-                value=False, 
-                disabled=True, 
-                help='No filters applied. Check out ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** to filter you data first.', 
-                key='selectFilter')
-    if not sst.csvMergedMinerals.empty:
-        toggleDataMinerals = st.checkbox('Include mineral predictions in file', value=True, key='selectMineral')
-    else:
-        toggleDataMinerals = st.checkbox('Include mineral predictions in file', 
-                value=False, 
-                disabled=True, 
-                help='Please perform ' + fn.pageNames['mineral']['ico'] + ' **' + fn.pageNames['mineral']['name'] + '** to include predicted minerals and calculated mineral formulas in the downloaded file.', 
-                key='selectMineral')
+        if not sst.csvMergedFiltered.empty and sst.dataViewerFilter['filterColumns'] != []:
+            toggleDataFiltered = st.checkbox('Include filtered data in file', value=True, key='selectFilter')
+        else:
+            toggleDataFiltered = st.checkbox('Include filtered data in file', 
+                    value=False, 
+                    disabled=True, 
+                    help='No filters applied. Check out ' + fn.pageNames['viewer']['ico'] + ' **' + fn.pageNames['viewer']['name'] + '** to filter you data first.', 
+                    key='selectFilter')
+        if not sst.csvMergedMinerals.empty:
+            toggleDataMinerals = st.checkbox('Include mineral predictions in file', value=True, key='selectMineral')
+        else:
+            toggleDataMinerals = st.checkbox('Include mineral predictions in file', 
+                    value=False, 
+                    disabled=True, 
+                    help='Please perform ' + fn.pageNames['mineral']['ico'] + ' **' + fn.pageNames['mineral']['name'] + '** to include predicted minerals and calculated mineral formulas in the downloaded file.', 
+                    key='selectMineral')
     
     # file generation
     uploadData = io.BytesIO()
