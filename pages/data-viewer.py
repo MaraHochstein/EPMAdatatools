@@ -447,7 +447,7 @@ else:
                 st.info('No map measurement conditions found in this record.', icon=':material/visibility_off:')
             else:
                 # create one tab for each map sample
-                mapTabNames = [':material/blur_on: ' + name.lstrip('map ') for name in sst.mapGeneralData.keys()]
+                mapTabNames = [':material/blur_on: ' + name.removeprefix('map ') for name in sst.mapGeneralData.keys()]
                 mapTabs = st.tabs(mapTabNames)
                 
                 for mapTabName, mapTab in zip(mapTabNames, mapTabs):
