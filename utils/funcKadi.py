@@ -88,7 +88,7 @@ def kadiGetUserRecords():
 
 # get records from group
 def kadiGetGroupRecords():
-    with st.spinner('Loading latest records (6 month) from IfG GUF, please wait...', show_time=True):
+    with st.spinner('Loading latest records (3 month) from IfG GUF, please wait...', show_time=True):
         # clear from previous run
         sst.userRecords = {}
         response = kadiGetData('groups/158/records?per_page=100') # per_page max = 100
@@ -100,8 +100,8 @@ def kadiGetGroupRecords():
             allItems = response.json()
             # check item ids & names
             for item in allItems['items']:
-                timeBreak = pd.Timestamp((pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=6)).isoformat()) # time now in format like kadi 'last modified' field - 6 month
-                # cycle as long as records are newer than 6 month ago
+                timeBreak = pd.Timestamp((pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=3)).isoformat()) # time now in format like kadi 'last modified' field - 6 month
+                # cycle as long as records are newer than 3 month ago
                 if pd.Timestamp(item['last_modified']) > timeBreak:
                     sst.userRecords[item['id']] = item['identifier']
                 else:
