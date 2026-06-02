@@ -106,7 +106,7 @@ def kadiGetGroupRecords():
         
         #### - Version mit Zeitlimit - ####
         #timeBreakStop = False
-        #timeBreak = pd.Timestamp((pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=3)).isoformat()) # time now in format like kadi 'last modified' field - 6 month
+        #timeBreak = pd.Timestamp((pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=3)).isoformat()) # time now in format like kadi 'last modified' field - 3 month
         #while page<(maxPages+1) and not timeBreakStop: # cycle trough pages
         #    response = kadiGetData('groups/158/records?per_page=100&page=' + str(page))
         #    allItems = response.json()
