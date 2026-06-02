@@ -773,7 +773,7 @@ else:
             st.markdown('The probability of predicted minerals is calculated with respect to the site occupation and the amount of available elements (measured values). These values are calculated:')
             st.markdown(
             r"""
-            - $%_filled$: to what percentage could the sites be filled?
+            - $%_{filled}$: to what percentage could the sites be filled?
             - $%_used$: how many percent of the available elements could be used to fill the crystal structure?
             - $%_predicted$: the weighted mean of $%_filled$ and $%_used$, with $%_used$ assigned a higher weight: $%_predicted = \frac{1*%_filled+1.5*%_used}{2.5}$
             <ul>
