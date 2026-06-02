@@ -97,7 +97,6 @@ def kadiGetGroupRecords():
         while page<(maxPages+1): # cycle trough pages
             response = kadiGetData('groups/158/records?per_page=100&page=' + str(page))
             allItems = response.json()
-            st.write(allItems)
             page+=1
             # check item ids & names
             for item in allItems['items']:
