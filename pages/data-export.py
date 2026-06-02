@@ -517,7 +517,7 @@ else:
         st.subheader(':material/note_stack_add: Download additional files as zip-archive', anchor=False)
         # additional files
         if len(sst.additionalFiles) > 0:
-            with st.expander('Select files to include:', expanded=True):
+            with st.expander('Please choose the files that should be included in the zip-archive:', expanded=True):
                 for additionalFile in sst.additionalFiles:
                     if sst.additionalFiles[additionalFile] not in sst.exportChecks:
                         sst.exportChecks[sst.additionalFiles[additionalFile]] = True
