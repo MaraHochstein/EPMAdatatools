@@ -452,7 +452,7 @@ else:
                 
                 for mapTabName, mapTab in zip(mapTabNames, mapTabs):
                     with mapTab:
-                        mapNameJson = 'map ' + mapTabName.lstrip(':material/blur_on: ')
+                        mapNameJson = 'map ' + mapTabName.removeprefix(':material/blur_on: ')
                         
                         # General Parameters
                         if mapNameJson in sst.mapGeneralData:
