@@ -100,7 +100,7 @@ def kadiGetGroupRecords():
             allItems = response.json()
             # check item ids & names
             for item in allItems['items']:
-                timeBreak = (pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=6)).isoformat() # time now in format like kadi 'last modified' field - 6 month
+                timeBreak = pd.Timestamp((pd.Timestamp.now(tz="UTC") - pd.DateOffset(months=6)).isoformat()) # time now in format like kadi 'last modified' field - 6 month
                 # cycle as long as records are newer than 6 month ago
                 if pd.Timestamp(item['last_modified']) > timeBreak:
                     sst.userRecords[item['id']] = item['identifier']
