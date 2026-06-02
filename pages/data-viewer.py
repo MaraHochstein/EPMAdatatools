@@ -422,7 +422,7 @@ else:
                     else:
                         for sheet in sst.standardsXlsx:
                             st.subheader('Standard Details (' + str(sheet) + ')', anchor=False)
-                            st.dataframe(sst.standardsXlsx[sheet], use_container_width=1)
+                            st.dataframe(sst.standardsXlsx[sheet], height='content')
                         
                 # Full    
                 with tab3a3:
