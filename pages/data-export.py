@@ -292,7 +292,7 @@ st.title('Data Export', anchor=False)
 if not sst.kadiLoaded:
     st.info('Please import your EPMA data in ' + fn.pageNames['import']['ico'] + ' **' + fn.pageNames['import']['name'] + '** in the sidebar menu.', icon=fn.pageNames['import']['ico'])
 else:
-    tab1, tab2, tab3, tab4 = st.tabs([':material/backup_table: Data :blue-badge[*.xlsx]', ':material/photo_library: Images', ':material/blur_on: Element Maps', ':material/note_stack_add: Additional Files'])
+    tab1, tab2, tab3, tab4 = st.tabs([':material/backup_table: Data :primary-badge[*.xlsx]', ':material/photo_library: Images :yellow-badge[*.zip]', ':material/blur_on: Element Maps :orange-badge[*.zip]', ':material/note_stack_add: Additional Files :grey-badge[*.zip]'])
     
     with tab1:
         #########################
