@@ -48,6 +48,10 @@ filenamePostCond = ''
 # click zip img button
 def compileZipImg():
     sst.createZipImg = 1
+
+# toggle change of additional files selection
+def toggleAddExport():
+    sst.createZipAdd = 0
     
 # click zip additional files button
 def compileZipAdd():
@@ -568,7 +572,7 @@ else:
                     if additionalFile not in sst.exportChecks:
                         sst.exportChecks[additionalFile] = True
                         
-                    sst.exportChecks[additionalFile] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[additionalFile], key=str(additionalFile) + "Check")
+                    sst.exportChecks[additionalFile] = st.checkbox(sst.additionalFiles[additionalFile], value=sst.exportChecks[additionalFile], key=str(additionalFile) + 'Check', on_change=toggleAddExport)                   
                     
             if sst.createZipAdd == 1:
                 addZipDownloadButton()
