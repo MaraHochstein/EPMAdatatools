@@ -21,6 +21,9 @@ variableList = [
     ['imageFiles', {}],
     ['imageData', []],
     
+    ['additionalFiles', {}],
+    
+    
     ['mapData', {}],
     ['mapGeneralData', {}],
     ['mapWdsData', {}],

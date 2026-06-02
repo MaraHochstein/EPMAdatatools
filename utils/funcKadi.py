@@ -164,7 +164,7 @@ def kadiLoadFiles(parentContainer = False):
                 # Init & Clean
                 ################
                 # clear from previous upload (if upload was only partly successful)
-                sstVars = ['kadiLoaded', 'kadiMetaData', 'condElements', 'condInfos', 'condMapInfos', 'condSamples', 'condMapSamples', 'condStd', 'methodGeneralData', 'methodSampleData', 'methodStdData', 'shortMeasCond', 'standardsXlsx', 'standardsXlsxExport', 'csvMerged', 'kadiFilter', 'imageData', 'imageFiles', 'mapData', 'mapFilter', 'mapGeneralData', 'mapWdsData', 'mapEdsData', 'qualiConditions', 'methodQualiGeneralData', 'qualiSpectra', 'methodQualiSpecData', 'qualitativeSpectraXlsx']
+                sstVars = ['kadiLoaded', 'kadiMetaData', 'condElements', 'condInfos', 'condMapInfos', 'condSamples', 'condMapSamples', 'condStd', 'methodGeneralData', 'methodSampleData', 'methodStdData', 'shortMeasCond', 'standardsXlsx', 'standardsXlsxExport', 'csvMerged', 'kadiFilter', 'imageData', 'imageFiles', 'additionalFiles', 'mapData', 'mapFilter', 'mapGeneralData', 'mapWdsData', 'mapEdsData', 'qualiConditions', 'methodQualiGeneralData', 'qualiSpectra', 'methodQualiSpecData', 'qualitativeSpectraXlsx']
                 for var in sstVars:
                     fn.resetVar(var)
                 
@@ -209,6 +209,8 @@ def kadiLoadFiles(parentContainer = False):
                 mapFiles = {}
                 mapFilter = {}
                 
+                additionalFiles = {}
+                
                 # get kadi metadata for record
                 st.write(':material/cloud_download: Getting metadata from Kadi4Mat ...')
                 kadiGetMetadata()
@@ -223,7 +225,8 @@ def kadiLoadFiles(parentContainer = False):
                 #   5. load saved filter settings from kadi
                 # ---- maps & imgs after merging to decrease loading time if error occurs
                 #   6. load map files
-                #   7. load image files 
+                #   7. load image files
+                #   8. load additional files (only download)
                 ############################################################################
                 
 
@@ -268,8 +271,8 @@ def kadiLoadFiles(parentContainer = False):
                         # map parameter jsons
                         elif item['name'].startswith('map ') and item['mimetype'] == 'application/json':
                             mapJsons[item['id']] = item['name']                        
-                        # images
-                        elif item['mimetype'] == 'image/tiff' or item['mimetype'] == 'image/jpeg':
+                        # images (exclude images wich start with 'add_' (= additional files for download only)
+                        elif (not item['name'].startswith('add_')) and (item['mimetype'] == 'image/tiff' or item['mimetype'] == 'image/jpeg'):
                             imageFiles[item['id']] = item['name']
                         # filter
                         elif 'filter' in item['name'] and item['mimetype'] == 'text/plain':
@@ -280,6 +283,9 @@ def kadiLoadFiles(parentContainer = False):
                         # map settings
                         elif 'mapSettings' in item['name'] and item['mimetype'] == 'text/plain':
                             mapFilter[item['id']] = item['name']
+                        # additional download files (start with 'add_')
+                        elif item['name'].startswith('add_'):
+                            additionalFiles[item['id']] = item['name']
                         
                 
                 ############################################################
@@ -757,10 +763,6 @@ def kadiLoadFiles(parentContainer = False):
                     #      --> merge both on comment
                     #######################################################################
                     
-                    #st.write(csvSummaryData)
-                    #st.write(normalData)
-                    #st.stop()
-                    
                     try:                           
                         mergeCsvNormal = pd.merge(csvSummaryData, normalData, on='Comment', validate='one_to_one')
                         
@@ -1100,8 +1102,21 @@ def kadiLoadFiles(parentContainer = False):
                     st.write(':material/skip_next: Skipping image import.')
                 
                 
+                ##########################################
+                # 8. load additional files for download 
+                ##########################################
+                
+                if len(additionalFiles) >= 0:
+                    # loading progress bar
+                    addLoaded = 0
+                    progressTxt = ':material/cloud_download: Loading additional data, this may take a while ... (' + str(addLoaded) + '/' + str(len(additionalFiles)) + ' loaded)'
+                    addProgress = st.progress(0, text=progressTxt)
+                    for additionalId in additionalFiles.keys():
+                        st.write('test ' + str(additionalId))
+                        
+                
                 ################
-                # 8. Success
+                # 9. Success
                 ################
                 
                 # re-check for errors in case st.stop() doesn't work
